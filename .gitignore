@@ -1,0 +1,6 @@
+*.class
+*classes
+*deploy
+gwt-unitCache
+gwt
+war/marauder
