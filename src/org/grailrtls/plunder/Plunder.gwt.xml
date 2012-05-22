@@ -12,13 +12,16 @@
   <!-- <inherits name='com.google.gwt.user.theme.dark.Dark'/>     -->
 
   <!-- Other module inherits                                      -->
-  <!-- <inherits name='com.google.gwt.dev.util.collect'/> --> 
+  <inherits name="com.google.gwt.resources.Resources" />
 
   <!-- Specify the app entry point class.                         -->
   <entry-point class='org.grailrtls.plunder.client.Plunder'/>
+  <!-- <inherits name="com.google.gwt.logging.Logging"/> -->
 
   <!-- Specify the paths for translatable code                    -->
   <source path='client'/>
+  <source path='resource'/>
   <source path='shared'/>
+  
 
 </module>

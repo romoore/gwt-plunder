@@ -1,11 +1,15 @@
 package org.grailrtls.plunder.client;
 
-public class Receiver {
-  private final String uri;
-  private float xOffset;
-  private float yOffset;
+import com.google.gwt.dom.client.ImageElement;
+import com.google.gwt.user.client.ui.Image;
 
-  public Receiver(final String uri) {
+public class DrawableObject {
+  private final String uri;
+  private float xOffset= -1f;
+  private float yOffset = -1f;
+  private Image icon = null;
+
+  public DrawableObject(final String uri) {
     this.uri = uri;
   }
 
@@ -30,13 +34,13 @@ public class Receiver {
   }
 
   public boolean equals(Object o) {
-    if (o instanceof Receiver) {
-      return this.equals((Receiver) o);
+    if (o instanceof DrawableObject) {
+      return this.equals((DrawableObject) o);
     }
     return super.equals(o);
   }
 
-  public boolean equals(Receiver r) {
+  public boolean equals(DrawableObject r) {
     if (this.uri.equals(r.uri)) {
       float diff = Math.abs(this.xOffset - r.xOffset);
       if (diff < 0.01f) {
@@ -48,5 +52,19 @@ public class Receiver {
       }
     }
     return false;
+  }
+
+  public Image getIcon() {
+    return icon;
+  }
+
+  public void setIcon(Image icon) {
+    this.icon = icon;
+  }
+  
+  @Override
+  public String toString(){
+    
+    return this.uri + " @ (" + this.xOffset + ", " + this. yOffset + ") " + (this.icon == null ? "NOIMG" : "IMG");
   }
 }

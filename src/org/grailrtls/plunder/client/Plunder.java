@@ -1,21 +1,21 @@
 package org.grailrtls.plunder.client;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+
+import org.grailrtls.plunder.resource.PlunderResource;
+
 
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
-import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.JsArray;
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.client.Scheduler.ScheduledCommand;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.dom.client.Style;
-import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
@@ -24,29 +24,23 @@ import com.google.gwt.event.dom.client.KeyPressHandler;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.http.client.URL;
-import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.DockLayoutPanel;
 import com.google.gwt.user.client.ui.FlowPanel;
-import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
-import com.google.gwt.user.client.ui.LayoutPanel;
 import com.google.gwt.user.client.ui.RootLayoutPanel;
-import com.google.gwt.user.client.ui.SplitLayoutPanel;
 import com.google.gwt.user.client.ui.TextBox;
-import com.google.gwt.user.client.ui.VerticalPanel;
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
 public class Plunder implements EntryPoint {
-
-  private static final String IMAGE_URL_RECVR = "images/antenna.png";
-  private static final String IMAGE_URL_DOOR = "images/door.png";
-  private static final String IMAGE_URL_DOOR_OPEN = "images/door_open.png";
-
+  
+  
+  
+  
   private final TextBox regionBox = new TextBox();
 
   private final Button regionButton = new Button("Change Region");
@@ -56,8 +50,11 @@ public class Plunder implements EntryPoint {
   private Context2d context;
   private Context2d backBufferContext;
 
-  private Image receiverImage = new Image(GWT.getModuleBaseURL().toString()
-      + "images/antenna.png");
+  
+  private static final Image receiverImage = new Image(PlunderResource.INSTANCE.transmitter().getSafeUri());
+  private static final Image transmitterImage = new Image(PlunderResource.INSTANCE.transmitter().getSafeUri());
+  private static final Image unknownImage = new Image(PlunderResource.INSTANCE.unknown().getSafeUri());
+  
   private Image regionImage = null;
   private float regionWidth = 1f;
   private float regionHeight = 1f;
@@ -66,12 +63,12 @@ public class Plunder implements EntryPoint {
 
   // Data from world model
   private WorldState regionState = null;
-  private Map<String, Receiver> receiverLocations = new HashMap<String, Receiver>();
+  private Map<String, DrawableObject> objectLocations = new HashMap<String, DrawableObject>();
 
   private DockLayoutPanel mainPanel = new DockLayoutPanel(Style.Unit.EM);
   private FlowPanel regionPanel = new FlowPanel();
 
-  public static String QUERY_HOST = "localhost";
+  public static String QUERY_HOST = "grail.rutgers.edu";
   public static String QUERY_PORT = "7011";
   public static String QUERY_PATH = "/grailrest";
   public static final String SNAPSHOT_PATH = "/snapshot?uri=";
@@ -174,7 +171,7 @@ public class Plunder implements EntryPoint {
     this.regionWidth = -1f;
     this.regionHeight = -1f;
     this.regionWidthToHeight = 1f;
-    this.receiverLocations.clear();
+    this.objectLocations.clear();
     String uri = this.regionBox.getText().trim();
     this.regionUri = uri;
     this.updateBuffers();
@@ -228,10 +225,6 @@ public class Plunder implements EntryPoint {
     float xRtS = drawWidth / this.regionWidth;
     float yRtS = drawHeight / this.regionHeight;
 
-    ImageElement recvElm = ImageElement.as(this.receiverImage.getElement());
-
-    int rcvImgWidth = this.receiverImage.getWidth();
-    int rcvImgHeight = this.receiverImage.getHeight();
 
     // Draw region image
     if (this.regionImage != null) {
@@ -243,22 +236,27 @@ public class Plunder implements EntryPoint {
     }
 
     // Draw receivers
-    for (Receiver recv : this.receiverLocations.values()) {
-      float recvX = recv.getxOffset();
-      float recvY = this.regionHeight - recv.getyOffset();
+    for (DrawableObject obj : this.objectLocations.values()) {
+      
+      
+      float objX = obj.getxOffset();
+      float objY = obj.getyOffset();
 
-      if (recvX < 0 || recvY < 0) {
+      if (objX < 0 || objY < 0) {
         continue;
       }
 
-      recvX = recvX * xRtS;
-      recvY = recvY * yRtS;
-
-      int canvX0 = (int) (recvX - rcvImgWidth / 2);
-      int canvY0 = (int) (recvY - rcvImgHeight / 2);
-
-      this.backBufferContext.drawImage(recvElm, 0, 0, rcvImgWidth,
-          rcvImgHeight, canvX0, canvY0, rcvImgWidth, rcvImgHeight);
+      objX = objX * xRtS;
+      objY = (this.regionHeight - objY) * yRtS;
+      int imgWidth = obj.getIcon().getWidth();
+      int imgHeight = obj.getIcon().getHeight();
+      int canvX0 = (int) (objX - imgWidth / 2f);
+      int canvY0 = (int) (objY - imgHeight / 2f);
+      
+//      this.backBufferContext.setFillStyle("red");
+//      this.backBufferContext.fillRect(canvX0, canvY0, imgWidth, imgHeight);
+      this.backBufferContext.drawImage(ImageElement.as(obj.getIcon().getElement()), 0, 0, imgWidth,
+          imgHeight, canvX0, canvY0, imgWidth, imgHeight);
     }
 
     this.repaint();
@@ -282,7 +280,7 @@ public class Plunder implements EntryPoint {
     }
     final String url = URL.encode("http://" + Plunder.QUERY_HOST + ":"
         + Plunder.QUERY_PORT + Plunder.QUERY_PATH + Plunder.SNAPSHOT_PATH
-        + this.regionUri + "\\.anchor\\..*\\.receiver.*")
+        + this.regionUri + ".*")
         + "&attribute=location.[xy]offset&callback=";
 
     createLocatableCallback(this.jsonRequestId++, url, this);
@@ -413,30 +411,41 @@ public class Plunder implements EntryPoint {
     
   }
 
-  protected void updateLocatableObjInfo(JsArray<JsWorldState> receiverStates) {
+  protected void updateLocatableObjInfo(JsArray<JsWorldState> objectStates) {
 
-    if (receiverStates == null || receiverStates.length() == 0) {
+    if (objectStates == null || objectStates.length() == 0) {
       return;
     }
 
     boolean dirty = false;
-    for (int i = 0; i < receiverStates.length(); ++i) {
-      JsWorldState iState = receiverStates.get(i);
-      Receiver newReceiver = new Receiver(iState.getUri());
+    for (int i = 0; i < objectStates.length(); ++i) {
+      
+      JsWorldState iState = objectStates.get(i);
+      String uri = iState.getUri();
+      DrawableObject newObject = new DrawableObject(uri);
+      if(uri.contains("receiver")){
+        newObject.setIcon(this.receiverImage);
+      }else if(uri.contains("transmitter")){
+        newObject.setIcon(this.transmitterImage);
+      }else{
+        // Unknown object
+        newObject.setIcon(this.unknownImage);
+      }
 
-      Receiver currReceiver = this.receiverLocations.get(iState.getUri());
+      DrawableObject currObject = this.objectLocations.get(uri);
 
       for (int j = 0; j < iState.getAttributes().length(); ++j) {
         JsAttribute jAttr = iState.getAttributes().get(j);
         if (jAttr.getName().equals("location.xoffset")) {
-          newReceiver.setxOffset(Float.parseFloat(jAttr.getData()));
+          
+          newObject.setxOffset(Float.parseFloat(jAttr.getData()));
         } else if (jAttr.getName().equals("location.yoffset")) {
-          newReceiver.setyOffset(Float.parseFloat(jAttr.getData()));
+          newObject.setyOffset(Float.parseFloat(jAttr.getData()));
         }
       }
-      if (currReceiver == null || !currReceiver.equals(newReceiver)) {
+      if (currObject == null || !currObject.equals(newObject)) {
         dirty = true;
-        this.receiverLocations.put(newReceiver.getUri(), newReceiver);
+        this.objectLocations.put(uri, newObject);
       }
     }
     if (dirty) {
