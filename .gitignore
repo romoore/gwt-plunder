@@ -4,6 +4,7 @@
 gwt-unitCache
 gwt
 war/marauder
+war/plunder
 *.tar
 *.bz2
 *.gz

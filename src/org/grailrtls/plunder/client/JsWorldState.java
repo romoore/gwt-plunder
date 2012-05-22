@@ -1,4 +1,4 @@
-package org.grailrtls.marauder.client;
+package org.grailrtls.plunder.client;
 
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.JsArray;

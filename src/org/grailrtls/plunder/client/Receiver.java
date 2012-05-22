@@ -1,4 +1,4 @@
-package org.grailrtls.marauder.client;
+package org.grailrtls.plunder.client;
 
 public class Receiver {
   private final String uri;

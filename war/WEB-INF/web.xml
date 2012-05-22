@@ -7,7 +7,7 @@
 
   <!-- Default page to serve -->
   <welcome-file-list>
-    <welcome-file>Marauder.html</welcome-file>
+    <welcome-file>Plunder.html</welcome-file>
   </welcome-file-list>
 
 </web-app>

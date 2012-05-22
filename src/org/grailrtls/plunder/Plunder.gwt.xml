@@ -15,7 +15,7 @@
   <!-- <inherits name='com.google.gwt.dev.util.collect'/> --> 
 
   <!-- Specify the app entry point class.                         -->
-  <entry-point class='org.grailrtls.marauder.client.Marauder'/>
+  <entry-point class='org.grailrtls.plunder.client.Plunder'/>
 
   <!-- Specify the paths for translatable code                    -->
   <source path='client'/>

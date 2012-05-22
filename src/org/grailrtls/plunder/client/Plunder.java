@@ -1,4 +1,4 @@
-package org.grailrtls.marauder.client;
+package org.grailrtls.plunder.client;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,7 +41,7 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
-public class Marauder implements EntryPoint {
+public class Plunder implements EntryPoint {
 
   private static final String IMAGE_URL_RECVR = "images/antenna.png";
   private static final String IMAGE_URL_DOOR = "images/door.png";
@@ -115,7 +115,7 @@ public class Marauder implements EntryPoint {
 
       @Override
       public void run() {
-        Marauder.this.prepareLocatableUrl();
+        Plunder.this.prepareLocatableUrl();
       }
     };
 
@@ -126,7 +126,7 @@ public class Marauder implements EntryPoint {
       @Override
       public void onKeyPress(KeyPressEvent event) {
         if (event.getCharCode() == KeyCodes.KEY_ENTER) {
-          Marauder.this.loadNewRegion();
+          Plunder.this.loadNewRegion();
         }
       }
     });
@@ -135,7 +135,7 @@ public class Marauder implements EntryPoint {
 
       @Override
       public void onClick(ClickEvent event) {
-        Marauder.this.loadNewRegion();
+        Plunder.this.loadNewRegion();
       }
     });
 
@@ -150,16 +150,23 @@ public class Marauder implements EntryPoint {
             
             int width = event.getWidth();
             int height = event.getHeight();
-            Marauder.this.canvas.setCoordinateSpaceWidth(width);
-            Marauder.this.canvas.setCoordinateSpaceHeight(height);
-            Marauder.this.backBufferCanvas.setCoordinateSpaceWidth(width);
-            Marauder.this.backBufferCanvas.setCoordinateSpaceHeight(height);
-            Marauder.this.updateBuffers();
+            Plunder.this.canvas.setCoordinateSpaceWidth(width);
+            Plunder.this.canvas.setCoordinateSpaceHeight(height);
+            Plunder.this.backBufferCanvas.setCoordinateSpaceWidth(width);
+            Plunder.this.backBufferCanvas.setCoordinateSpaceHeight(height);
+            Plunder.this.updateBuffers();
           }
         });
 
       }
     });
+    
+    String initRegion = Window.Location.getParameter("q");
+    if(initRegion != null && initRegion.trim().length() > 0){
+      this.regionBox.setText(initRegion);
+      this.regionUri = initRegion;
+      this.loadNewRegion();
+    }
   }
 
   void loadNewRegion() {
@@ -184,7 +191,7 @@ public class Marauder implements EntryPoint {
       
       @Override
       public void execute() {
-        Marauder.this.context.drawImage(Marauder.this.backBufferContext.getCanvas(), 0, 0);
+        Plunder.this.context.drawImage(Plunder.this.backBufferContext.getCanvas(), 0, 0);
       }
     });
     
@@ -216,7 +223,7 @@ public class Marauder implements EntryPoint {
 
 //    this.canvas.setCoordinateSpaceHeight(sHeight);
 //    this.canvas.setCoordinateSpaceWidth(sWidth);
-    this.backBufferContext.clearRect(0, 0, this.backBufferCanvas.getCoordinateSpaceWidth(), this.backBufferCanvas.getCoordinateSpaceHeight());
+    this.backBufferContext.clearRect(0, 0, sWidth, sHeight);
 
     float xRtS = drawWidth / this.regionWidth;
     float yRtS = drawHeight / this.regionHeight;
@@ -261,8 +268,8 @@ public class Marauder implements EntryPoint {
     if (this.regionUri == null) {
       return;
     }
-    final String uri = URL.encode("http://" + Marauder.QUERY_HOST + ":"
-        + Marauder.QUERY_PORT + Marauder.QUERY_PATH + Marauder.SNAPSHOT_PATH
+    final String uri = URL.encode("http://" + Plunder.QUERY_HOST + ":"
+        + Plunder.QUERY_PORT + Plunder.QUERY_PATH + Plunder.SNAPSHOT_PATH
         + "region." + this.regionUri)
         + "&callback=";
 
@@ -273,8 +280,8 @@ public class Marauder implements EntryPoint {
     if (this.regionUri == null) {
       return;
     }
-    final String url = URL.encode("http://" + Marauder.QUERY_HOST + ":"
-        + Marauder.QUERY_PORT + Marauder.QUERY_PATH + Marauder.SNAPSHOT_PATH
+    final String url = URL.encode("http://" + Plunder.QUERY_HOST + ":"
+        + Plunder.QUERY_PORT + Plunder.QUERY_PATH + Plunder.SNAPSHOT_PATH
         + this.regionUri + "\\.anchor\\..*\\.receiver.*")
         + "&attribute=location.[xy]offset&callback=";
 
@@ -282,7 +289,7 @@ public class Marauder implements EntryPoint {
   }
 
   protected native static void createLocatableCallback(final int requestId,
-      final String url, Marauder handler)/*-{
+      final String url, Plunder handler)/*-{
 		var callback = "callback" + requestId;
 
 		var script = document.createElement("script");
@@ -291,14 +298,14 @@ public class Marauder implements EntryPoint {
 		script.setAttribute("type", "text/javascript");
 
 		window[callback] = function(jsonObj) {
-			handler.@org.grailrtls.marauder.client.Marauder::handleLocatableJson(Lcom/google/gwt/core/client/JavaScriptObject;)(jsonObj);
+			handler.@org.grailrtls.plunder.client.Plunder::handleLocatableJson(Lcom/google/gwt/core/client/JavaScriptObject;)(jsonObj);
 			window[callback + "done"] = true;
 		}
 
 		setTimeout(
 				function() {
 					if (!window[callback + "done"]) {
-						handler.@org.grailrtls.marauder.client.Marauder::handleLocatableJson(Lcom/google/gwt/core/client/JavaScriptObject;)(null);
+						handler.@org.grailrtls.plunder.client.Plunder::handleLocatableJson(Lcom/google/gwt/core/client/JavaScriptObject;)(null);
 					}
 
 					document.body.removeChild(script);
@@ -311,7 +318,7 @@ public class Marauder implements EntryPoint {
   }-*/;
 
   protected native static void createRegionCallback(final int requestId,
-      final String url, Marauder handler)/*-{
+      final String url, Plunder handler)/*-{
 		var callback = "callback" + requestId;
 
 		var script = document.createElement("script");
@@ -320,14 +327,14 @@ public class Marauder implements EntryPoint {
 		script.setAttribute("type", "text/javascript");
 
 		window[callback] = function(jsonObj) {
-			handler.@org.grailrtls.marauder.client.Marauder::handleRegionJson(Lcom/google/gwt/core/client/JavaScriptObject;)(jsonObj);
+			handler.@org.grailrtls.plunder.client.Plunder::handleRegionJson(Lcom/google/gwt/core/client/JavaScriptObject;)(jsonObj);
 			window[callback + "done"] = true;
 		}
 
 		setTimeout(
 				function() {
 					if (!window[callback + "done"]) {
-						handler.@org.grailrtls.marauder.client.Marauder::handleRegionJson(Lcom/google/gwt/core/client/JavaScriptObject;)(null);
+						handler.@org.grailrtls.plunder.client.Plunder::handleRegionJson(Lcom/google/gwt/core/client/JavaScriptObject;)(null);
 					}
 
 					document.body.removeChild(script);
@@ -438,7 +445,7 @@ public class Marauder implements EntryPoint {
 
         @Override
         public void execute() {
-          Marauder.this.updateBuffers();
+          Plunder.this.updateBuffers();
         }
       });
     }
