@@ -71,7 +71,7 @@ public class Marauder implements EntryPoint {
   private DockLayoutPanel mainPanel = new DockLayoutPanel(Style.Unit.EM);
   private FlowPanel regionPanel = new FlowPanel();
 
-  public static String QUERY_HOST = "grail.rutgers.edu";
+  public static String QUERY_HOST = "localhost";
   public static String QUERY_PORT = "7011";
   public static String QUERY_PATH = "/grailrest";
   public static final String SNAPSHOT_PATH = "/snapshot?uri=";
@@ -238,7 +238,7 @@ public class Marauder implements EntryPoint {
     // Draw receivers
     for (Receiver recv : this.receiverLocations.values()) {
       float recvX = recv.getxOffset();
-      float recvY = recv.getyOffset();
+      float recvY = this.regionHeight - recv.getyOffset();
 
       if (recvX < 0 || recvY < 0) {
         continue;
