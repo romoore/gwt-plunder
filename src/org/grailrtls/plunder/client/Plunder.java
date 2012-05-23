@@ -47,13 +47,17 @@ import com.google.gwt.user.client.ui.DockLayoutPanel;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.RootLayoutPanel;
+import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.TextBox;
+import com.sun.jndi.url.corbaname.corbanameURLContextFactory;
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
 public class Plunder implements EntryPoint {
+  
+  private static final Logger log = Logger.getLogger(Plunder.class.getName());
 
   private final TextBox regionBox = new TextBox();
 
@@ -142,6 +146,8 @@ public class Plunder implements EntryPoint {
    * This is the entry point method.
    */
   public void onModuleLoad() {
+   
+    
     this.canvas = Canvas.createIfSupported();
     this.backBufferCanvas = Canvas.createIfSupported();
 
@@ -175,6 +181,8 @@ public class Plunder implements EntryPoint {
             && Plunder.this.regionUri.length() > 0) {
 
         }
+        
+        log.info("@TIMER: Retrieving objects automatically. (" + Plunder.this.refreshRate + " ms)");
         Plunder.this.wmi.getLocatableDetails(Plunder.this.regionUri);
 
       }
@@ -202,7 +210,7 @@ public class Plunder implements EntryPoint {
 
       @Override
       public void onResize(final ResizeEvent event) {
-
+        log.info("@WINDOW: Resized to (" + event.getWidth() + ", " + event.getHeight() + ")");
         Plunder.this.resizeCanvas(event.getWidth(), event.getHeight());
 
       }
@@ -222,6 +230,7 @@ public class Plunder implements EntryPoint {
 
         @Override
         public void execute() {
+          log.info("@DEFER: Loading initial region value: " + Plunder.this.regionUri);
           Plunder.this.loadNewRegion();
         }
       });
@@ -230,6 +239,9 @@ public class Plunder implements EntryPoint {
   }
 
   void loadNewRegion() {
+    this.regionUri = this.regionBox.getText().trim();
+    log.severe("Loading region " + this.regionUri);
+    
     if (this.locationUpdateTimer != null) {
       this.locationUpdateTimer.cancel();
     }
@@ -238,10 +250,10 @@ public class Plunder implements EntryPoint {
     this.regionHeight = 1f;
     this.regionWidthToHeight = 1f;
     this.objectLocations.clear();
-    String uri = this.regionBox.getText().trim();
-    this.regionUri = uri;
+    
+    
     this.redrawBuffer();
-    if (uri.length() == 0) {
+    if (this.regionUri.length() == 0) {
       this.regionUri = null;
       return;
     }
@@ -251,10 +263,13 @@ public class Plunder implements EntryPoint {
 
   void repaint() {
 
+    log.severe("+REPAINT: Clearing (" + this.canvas.getCoordinateSpaceWidth() + ", " + this.canvas.getCoordinateSpaceHeight() +")");
+    
     this.context.clearRect(0, 0, Plunder.this.canvas.getCoordinateSpaceWidth(),
         Plunder.this.canvas.getCoordinateSpaceHeight());
     if (this.canvas.getCoordinateSpaceWidth() > 0
         && this.canvas.getCoordinateSpaceHeight() > 0) {
+      log.severe("+REPAINT: Drawing (" + this.backBufferCanvas.getCoordinateSpaceWidth() + ", " + this.backBufferCanvas.getCoordinateSpaceHeight() +")");
       this.context.drawImage(Plunder.this.backBufferCanvas.getCanvasElement(),
           0, 0);
     }
@@ -262,13 +277,14 @@ public class Plunder implements EntryPoint {
   }
 
   void resizeCanvas(int newWidth, int newHeight) {
-
+    log.severe("+RESIZE (" + newWidth + ", " + newHeight + ")");
     int width = newWidth;
     int height = newHeight;
 
-    if (this.regionImage != null) {
+    if (this.regionImage != null && this.regionImage.getWidth() > 0) {
       width = this.regionImage.getWidth();
       height = this.regionImage.getHeight();
+      log.info("+RESIZE: Using image dimensions (" + width + ", " + height + ")");
     }
 
     // this.canvas.getCanvasElement().setWidth(width);
@@ -278,6 +294,7 @@ public class Plunder implements EntryPoint {
     this.canvas.setCoordinateSpaceHeight((int) height);
     this.backBufferCanvas.setCoordinateSpaceWidth((int) width);
     this.backBufferCanvas.setCoordinateSpaceHeight((int) height);
+    this.canvas.setSize(width + Style.Unit.PX.getType(), height + Style.Unit.PX.getType());
 
     int drawWidth = width;
     int drawHeight = (int) (width / this.regionWidthToHeight);
@@ -288,8 +305,12 @@ public class Plunder implements EntryPoint {
       drawWidth = (int) (height * this.regionWidthToHeight);
     }
 
+    log.info("+RESIZE: Drawable area (" + drawWidth + ", " + drawHeight + ")");
+    
     this.regionToScreenX = drawWidth / this.regionWidth;
     this.regionToScreenY = drawHeight / this.regionHeight;
+    
+    log.info("+RESIZE: Ratios X: " + this.regionToScreenX + ", Y: " + this.regionToScreenY);
 
     // this.canvas.getCanvasElement().setWidth((int) (width *
     // this.magnification));
@@ -305,10 +326,11 @@ public class Plunder implements EntryPoint {
   }
 
   private void redrawBuffer() {
-
+    
     int sWidth = this.canvas.getCoordinateSpaceWidth();
     int sHeight = this.canvas.getCoordinateSpaceHeight();
-
+    log.severe("+REDRAW onto (" + sWidth + ", " + sHeight + ")");
+    
     int drawWidth = sWidth;
     int drawHeight = (int) (sWidth / this.regionWidthToHeight);
 
@@ -318,14 +340,14 @@ public class Plunder implements EntryPoint {
       drawWidth = (int) (sHeight * this.regionWidthToHeight);
     }
 
+    log.info("+REDRAW: Drawable area (" + drawWidth + ", " + drawHeight + ")");
+    
     // Get dimensions of browser of root panel
 
     // this.canvas.setCoordinateSpaceHeight(sHeight);
     // this.canvas.setCoordinateSpaceWidth(sWidth);
+    log.info("+REDRAW: Clearing back (" + sWidth + ", " + sHeight + ")");
     this.backBufferContext.clearRect(0, 0, sWidth, sHeight);
-
-    final float xRtS = drawWidth / this.regionWidth;
-    final float yRtS = drawHeight / this.regionHeight;
 
     // Draw region image
     if (this.regionImage != null) {
@@ -365,7 +387,7 @@ public class Plunder implements EntryPoint {
   }
 
   protected void updateRegionInfo(JsArray<JsWorldState> regionStateArray) {
-
+    log.severe("+REGION UPDATE");
     if (regionStateArray == null || regionStateArray.length() == 0) {
       return;
     }
@@ -390,19 +412,21 @@ public class Plunder implements EntryPoint {
         String imageUrl = jAttr.getData();
         // Image.prefetch(imageUrl);
         Image regionBgImg = new Image(imageUrl);
-
+        log.info("+REGION: Image URL: " + imageUrl);
         this.regionImage = regionBgImg;
       }
 
       // Check for region dimensions
       else if (jAttr.getName().equals("location.maxx")) {
         this.regionWidth = Float.parseFloat(jAttr.getData());
+        log.info("+REGION: X-Max: " + this.regionWidth);
         // this.regionToScreenX =
         // this.backBufferCanvas.getCoordinateSpaceWidth()
         // / this.regionWidth;
 
       } else if (jAttr.getName().equals("location.maxy")) {
         this.regionHeight = Float.parseFloat(jAttr.getData());
+        log.info("+REGION: Y-Max: " + this.regionHeight);
         // this.regionToScreenY =
         // this.backBufferCanvas.getCoordinateSpaceHeight()
         // / this.regionHeight;
@@ -410,38 +434,48 @@ public class Plunder implements EntryPoint {
 
     }
 
-    // int width = this.canvas.getCoordinateSpaceWidth();
-    // int height = this.canvas.getCoordinateSpaceHeight();
-    //
-    // int drawWidth = width;
-    // int drawHeight = (int) (width / this.regionWidthToHeight);
-    //
-    // // Too tall? Rescale
-    // if (drawHeight > height) {
-    // drawHeight = height;
-    // drawWidth = (int) (height * this.regionWidthToHeight);
-    // }
-    //
-    // this.regionToScreenX = drawWidth / this.regionWidth;
-    // this.regionToScreenY = drawHeight / this.regionHeight;
-
     if (this.regionHeight > 0 && this.regionWidth > 0) {
       this.regionWidthToHeight = this.regionWidth / this.regionHeight;
     }
+    
+    log.info("+REGION: Region A/R: " + this.regionWidthToHeight + " (" + this.regionWidth + "/" + this.regionHeight + ")");
 
-    Plunder.this.resizeCanvas((int) Plunder.this.regionWidth,
+    // Defer the next step until the region image is loaded
+    if(this.regionImage != null){
+      this.regionImage.setVisible(false);
+      RootPanel.get().add(this.regionImage);
+      this.regionImage.addLoadHandler(new LoadHandler() {
+        
+        @Override
+        public void onLoad(LoadEvent event) {
+          log.severe("+REGION IMAGE LOADED");
+          RootPanel.get().remove(Plunder.this.regionImage);
+          Plunder.this.finishRegionLoading();
+          
+          
+        }
+      });
+    }
+    else{
+      this.finishRegionLoading();
+    }
+  }
+  
+  protected void finishRegionLoading(){
+    this.resizeCanvas((int) Plunder.this.regionWidth,
         (int) Plunder.this.regionHeight);
 
-    Plunder.this.redrawBuffer();
+//    Plunder.this.redrawBuffer();
 
-    Plunder.this.wmi.getLocatableDetails(Plunder.this.regionUri);
-    Plunder.this.locationUpdateTimer
+    this.wmi.getLocatableDetails(Plunder.this.regionUri);
+    this.locationUpdateTimer
         .scheduleRepeating(Plunder.this.refreshRate);
-
   }
 
   protected void updateLocatableObjInfo(JsArray<JsWorldState> objectStates) {
 
+    log.severe("+OBJECT Update");
+    
     if (objectStates == null || objectStates.length() == 0) {
       return;
     }
@@ -464,11 +498,12 @@ public class Plunder implements EntryPoint {
       }
     }
     if (dirty) {
-
+      log.info("+OBJECT: Dirty, redrawing.");
       Scheduler.get().scheduleDeferred(new ScheduledCommand() {
-
+        
         @Override
         public void execute() {
+          log.info("+DEFER: Redrawing dirty back buffer.");
           Plunder.this.redrawBuffer();
         }
       });
@@ -541,6 +576,8 @@ public class Plunder implements EntryPoint {
     obj.setxOffset(xOff);
     // FIXME: Nasty hack for Y-translation
     obj.setyOffset(this.regionHeight - yOff);
+    
+    log.info("+DRAWABLE (" + uri + "): (" + xOff + ", " + yOff + "->" + obj.getyOffset() + ")");
 
     obj.setxScale(this.regionToScreenX);
     obj.setyScale(this.regionToScreenY);
