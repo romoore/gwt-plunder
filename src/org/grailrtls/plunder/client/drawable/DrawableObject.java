@@ -1,4 +1,4 @@
-package org.grailrtls.plunder.client;
+package org.grailrtls.plunder.client.drawable;
 
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.dom.client.ImageElement;

@@ -7,7 +7,15 @@ import java.util.logging.Logger;
 
 import javax.swing.ScrollPaneLayout;
 
+import org.grailrtls.plunder.client.drawable.Chair;
+import org.grailrtls.plunder.client.drawable.Door;
+import org.grailrtls.plunder.client.drawable.DrawableObject;
+import org.grailrtls.plunder.client.drawable.Microwave;
+import org.grailrtls.plunder.client.drawable.Projector;
+import org.grailrtls.plunder.client.drawable.Screen;
 import org.grailrtls.plunder.resource.PlunderResource;
+
+import sun.management.counter.Units;
 
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
@@ -17,6 +25,7 @@ import com.google.gwt.core.client.JsArray;
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.client.Scheduler.RepeatingCommand;
 import com.google.gwt.core.client.Scheduler.ScheduledCommand;
+import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.dom.client.Style;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -24,10 +33,13 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyPressEvent;
 import com.google.gwt.event.dom.client.KeyPressHandler;
+import com.google.gwt.event.dom.client.LoadEvent;
+import com.google.gwt.event.dom.client.LoadHandler;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.http.client.URL;
 
+import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
@@ -113,8 +125,6 @@ public class Plunder implements EntryPoint {
   private float regionToScreenX = 1f;
   private float regionToScreenY = 1f;
 
-  // Data from world model
-  private WorldState regionState = null;
   private Map<String, DrawableObject> objectLocations = new HashMap<String, DrawableObject>();
 
   private DockLayoutPanel mainPanel = new DockLayoutPanel(Style.Unit.EM);
@@ -125,6 +135,8 @@ public class Plunder implements EntryPoint {
   private WorldModelInterface wmi = new WorldModelInterface(this);
 
   private float magnification = 1f;
+
+  private Timer locationUpdateTimer;
 
   /**
    * This is the entry point method.
@@ -137,7 +149,7 @@ public class Plunder implements EntryPoint {
     if (this.canvas == null) {
       return;
     }
-    this.canvas.setSize("100%", "100%");
+    this.canvas.setSize("800" + Style.Unit.PX, "600" + Style.Unit.PX);
 
     this.context = this.canvas.getContext2d();
     this.backBufferContext = this.backBufferCanvas.getContext2d();
@@ -154,6 +166,19 @@ public class Plunder implements EntryPoint {
     this.mainPanel.setSize("100%", "100%");
 
     RootLayoutPanel.get().add(this.mainPanel);
+
+    this.locationUpdateTimer = new Timer() {
+
+      @Override
+      public void run() {
+        if (Plunder.this.regionUri != null
+            && Plunder.this.regionUri.length() > 0) {
+
+        }
+        Plunder.this.wmi.getLocatableDetails(Plunder.this.regionUri);
+
+      }
+    };
 
     this.regionBox.addKeyPressHandler(new KeyPressHandler() {
 
@@ -179,15 +204,9 @@ public class Plunder implements EntryPoint {
       public void onResize(final ResizeEvent event) {
 
         Plunder.this.resizeCanvas(event.getWidth(), event.getHeight());
+
       }
     });
-
-    String initRegion = Window.Location.getParameter("q");
-    if (initRegion != null && initRegion.trim().length() > 0) {
-      this.regionBox.setText(initRegion);
-      this.regionUri = initRegion;
-      this.loadNewRegion();
-    }
 
     String refreshString = Window.Location.getParameter("refresh");
     if (refreshString != null) {
@@ -195,34 +214,33 @@ public class Plunder implements EntryPoint {
       this.requestTimeout = Math.max(this.refreshRate / 2, 500);
     }
 
-    final Timer objectTimer = new Timer() {
+    String initRegion = Window.Location.getParameter("q");
+    if (initRegion != null && initRegion.trim().length() > 0) {
+      this.regionBox.setText(initRegion);
+      this.regionUri = initRegion;
+      Scheduler.get().scheduleDeferred(new ScheduledCommand() {
 
-      @Override
-      public void run() {
-        if (Plunder.this.regionUri != null
-            && Plunder.this.regionUri.length() > 0) {
-
+        @Override
+        public void execute() {
+          Plunder.this.loadNewRegion();
         }
-        Plunder.this.wmi.getLocatableDetails(Plunder.this.regionUri);
-      }
-    };
+      });
 
-    objectTimer.scheduleRepeating(this.refreshRate);
-
-    // this.resizeCanvas(this.canvas.getElement().getOffsetWidth(), this.canvas
-    // .getElement().getOffsetHeight());
+    }
   }
 
   void loadNewRegion() {
-
+    if (this.locationUpdateTimer != null) {
+      this.locationUpdateTimer.cancel();
+    }
     this.regionImage = null;
-    this.regionWidth = -1f;
-    this.regionHeight = -1f;
+    this.regionWidth = 1f;
+    this.regionHeight = 1f;
     this.regionWidthToHeight = 1f;
     this.objectLocations.clear();
     String uri = this.regionBox.getText().trim();
     this.regionUri = uri;
-    this.updateBuffers();
+    this.redrawBuffer();
     if (uri.length() == 0) {
       this.regionUri = null;
       return;
@@ -233,41 +251,63 @@ public class Plunder implements EntryPoint {
 
   void repaint() {
 
-    this.context.clearRect(0, 0, Plunder.this.canvas.getCanvasElement()
-        .getWidth(), Plunder.this.canvas.getCanvasElement().getHeight());
-    this.context.drawImage(Plunder.this.backBufferCanvas.getCanvasElement(), 0,
-        0);
+    this.context.clearRect(0, 0, Plunder.this.canvas.getCoordinateSpaceWidth(),
+        Plunder.this.canvas.getCoordinateSpaceHeight());
+    if (this.canvas.getCoordinateSpaceWidth() > 0
+        && this.canvas.getCoordinateSpaceHeight() > 0) {
+      this.context.drawImage(Plunder.this.backBufferCanvas.getCanvasElement(),
+          0, 0);
+    }
 
   }
 
-  void resizeCanvas(int width, int height) {
+  void resizeCanvas(int newWidth, int newHeight) {
+
+    int width = newWidth;
+    int height = newHeight;
+
+    if (this.regionImage != null) {
+      width = this.regionImage.getWidth();
+      height = this.regionImage.getHeight();
+    }
+
+    // this.canvas.getCanvasElement().setWidth(width);
+    // this.canvas.getCanvasElement().setHeight(height);
 
     this.canvas.setCoordinateSpaceWidth((int) width);
     this.canvas.setCoordinateSpaceHeight((int) height);
     this.backBufferCanvas.setCoordinateSpaceWidth((int) width);
     this.backBufferCanvas.setCoordinateSpaceHeight((int) height);
 
-    this.regionToScreenX = this.backBufferCanvas.getCoordinateSpaceWidth()
-        / this.regionWidth;
-    this.regionToScreenY = this.backBufferCanvas.getCoordinateSpaceHeight()
-        / this.regionHeight;
+    int drawWidth = width;
+    int drawHeight = (int) (width / this.regionWidthToHeight);
 
-    this.canvas.getCanvasElement().setWidth((int) (width * this.magnification));
-    this.canvas.getCanvasElement().setHeight(
-        (int) (height * this.magnification));
-    
-    for(DrawableObject obj : this.objectLocations.values()){
+    // Too tall? Rescale
+    if (drawHeight > height) {
+      drawHeight = height;
+      drawWidth = (int) (height * this.regionWidthToHeight);
+    }
+
+    this.regionToScreenX = drawWidth / this.regionWidth;
+    this.regionToScreenY = drawHeight / this.regionHeight;
+
+    // this.canvas.getCanvasElement().setWidth((int) (width *
+    // this.magnification));
+    // this.canvas.getCanvasElement().setHeight(
+    // (int) (height* this.magnification));
+
+    for (DrawableObject obj : this.objectLocations.values()) {
       obj.setxScale(this.regionToScreenX);
       obj.setyScale(this.regionToScreenY);
     }
 
-    this.updateBuffers();
+    this.redrawBuffer();
   }
 
-  private void updateBuffers() {
+  private void redrawBuffer() {
 
-    int sWidth = this.canvas.getCoordinateSpaceWidth(); // this.canvas.getCoordinateSpaceWidth();
-    int sHeight = this.canvas.getCoordinateSpaceHeight(); // this.canvas.getCoordinateSpaceHeight();
+    int sWidth = this.canvas.getCoordinateSpaceWidth();
+    int sHeight = this.canvas.getCoordinateSpaceHeight();
 
     int drawWidth = sWidth;
     int drawHeight = (int) (sWidth / this.regionWidthToHeight);
@@ -357,22 +397,46 @@ public class Plunder implements EntryPoint {
       // Check for region dimensions
       else if (jAttr.getName().equals("location.maxx")) {
         this.regionWidth = Float.parseFloat(jAttr.getData());
-        this.regionToScreenX = this.backBufferCanvas.getCoordinateSpaceWidth()
-            / this.regionWidth;
+        // this.regionToScreenX =
+        // this.backBufferCanvas.getCoordinateSpaceWidth()
+        // / this.regionWidth;
 
       } else if (jAttr.getName().equals("location.maxy")) {
         this.regionHeight = Float.parseFloat(jAttr.getData());
-        this.regionToScreenY = this.backBufferCanvas.getCoordinateSpaceHeight()
-            / this.regionHeight;
+        // this.regionToScreenY =
+        // this.backBufferCanvas.getCoordinateSpaceHeight()
+        // / this.regionHeight;
       }
 
     }
+
+    // int width = this.canvas.getCoordinateSpaceWidth();
+    // int height = this.canvas.getCoordinateSpaceHeight();
+    //
+    // int drawWidth = width;
+    // int drawHeight = (int) (width / this.regionWidthToHeight);
+    //
+    // // Too tall? Rescale
+    // if (drawHeight > height) {
+    // drawHeight = height;
+    // drawWidth = (int) (height * this.regionWidthToHeight);
+    // }
+    //
+    // this.regionToScreenX = drawWidth / this.regionWidth;
+    // this.regionToScreenY = drawHeight / this.regionHeight;
+
     if (this.regionHeight > 0 && this.regionWidth > 0) {
       this.regionWidthToHeight = this.regionWidth / this.regionHeight;
     }
-    this.regionState = newRegion;
 
-    this.updateBuffers();
+    Plunder.this.resizeCanvas((int) Plunder.this.regionWidth,
+        (int) Plunder.this.regionHeight);
+
+    Plunder.this.redrawBuffer();
+
+    Plunder.this.wmi.getLocatableDetails(Plunder.this.regionUri);
+    Plunder.this.locationUpdateTimer
+        .scheduleRepeating(Plunder.this.refreshRate);
 
   }
 
@@ -392,7 +456,7 @@ public class Plunder implements EntryPoint {
         continue;
       }
       DrawableObject currObject = this.objectLocations.get(uri);
-      
+
       DrawableObject newObject = createObject(iState);
       if (currObject == null || !currObject.equals(newObject)) {
         dirty = true;
@@ -405,7 +469,7 @@ public class Plunder implements EntryPoint {
 
         @Override
         public void execute() {
-          Plunder.this.updateBuffers();
+          Plunder.this.redrawBuffer();
         }
       });
     }

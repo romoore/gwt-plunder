@@ -1,39 +1,33 @@
-package org.grailrtls.plunder.client;
+package org.grailrtls.plunder.client.drawable;
 
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.user.client.ui.Image;
 
-public class Screen extends DrawableObject {
+public class Projector extends DrawableObject {
 
   private ImageElement onIcon;
   private ImageElement offIcon;
   private boolean isOn;
 
-//  public Screen(String uri) {
-//    this(uri, null, null, false);
-//  }
-//
-//  public Screen(String uri, Image onIcon, Image offIcon) {
-//    this(uri, onIcon, offIcon, false);
-//  }
 
-  public Screen(String uri, ImageElement onIcon, ImageElement offIcon, boolean isOn) {
+
+  public Projector(String uri, ImageElement onIcon, ImageElement offIcon, boolean isOn) {
     super(uri);
     this.onIcon = onIcon;
     this.offIcon = offIcon;
     this.isOn = isOn;
   }
 
-  public boolean equals(Screen s) {
-    if (super.equals(s)) {
-      return this.isOn == s.isOn;
+  public boolean equals(Projector p) {
+    if (super.equals(p)) {
+      return this.isOn == p.isOn;
     }
     return false;
   }
 
   /**
-   * The {@code setIcon(Image)} method does nothing for screens, and
+   * The {@code setIcon(Image)} method does nothing for projectors, and
    * {@code setOnIcon(Image)} and {@code setOffIcon(Image)} should be used
    * instead.
    */

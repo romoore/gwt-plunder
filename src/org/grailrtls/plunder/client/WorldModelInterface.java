@@ -11,7 +11,7 @@ public class WorldModelInterface {
   public static String QUERY_PATH = "/grailrest";
   public static final String SNAPSHOT_PATH = "/snapshot?uri=";
   
-  int requestTimeoutMs = 1000;
+  int requestTimeoutMs = 3000;
 
   private int jsonRequestId = 0;
 
