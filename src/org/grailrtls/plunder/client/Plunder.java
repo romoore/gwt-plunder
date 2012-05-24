@@ -1,11 +1,8 @@
 package org.grailrtls.plunder.client;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
-
-import javax.swing.ScrollPaneLayout;
 
 import org.grailrtls.plunder.client.drawable.Chair;
 import org.grailrtls.plunder.client.drawable.Door;
@@ -15,17 +12,15 @@ import org.grailrtls.plunder.client.drawable.Projector;
 import org.grailrtls.plunder.client.drawable.Screen;
 import org.grailrtls.plunder.resource.PlunderResource;
 
-import sun.management.counter.Units;
+import sun.security.krb5.internal.util.KrbDataOutputStream;
 
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
-import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.JsArray;
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.client.Scheduler.RepeatingCommand;
 import com.google.gwt.core.client.Scheduler.ScheduledCommand;
-import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.dom.client.Style;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -37,26 +32,23 @@ import com.google.gwt.event.dom.client.LoadEvent;
 import com.google.gwt.event.dom.client.LoadHandler;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
-import com.google.gwt.http.client.URL;
-
-import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.DockLayoutPanel;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.Image;
+import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.RootLayoutPanel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.TextBox;
-import com.sun.jndi.url.corbaname.corbanameURLContextFactory;
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
 public class Plunder implements EntryPoint {
-  
+
   private static final Logger log = Logger.getLogger(Plunder.class.getName());
 
   private final TextBox regionBox = new TextBox();
@@ -71,54 +63,85 @@ public class Plunder implements EntryPoint {
   private int refreshRate = 2000;
   private int requestTimeout = 1000;
 
-  private static final ImageElement IMG_RECEIVER = ImageElement.as(new Image(
-      PlunderResource.INSTANCE.transmitter().getSafeUri()).getElement());
-  private static final ImageElement IMG_TRANSMITTER = ImageElement
-      .as(new Image(PlunderResource.INSTANCE.transmitter().getSafeUri())
-          .getElement());
-  private static final ImageElement IMG_DOOR_OPEN = ImageElement.as(new Image(
-      PlunderResource.INSTANCE.doorOpen().getSafeUri()).getElement());
-  private static final ImageElement IMG_DOOR_CLOSED = ImageElement
-      .as(new Image(PlunderResource.INSTANCE.doorClosed().getSafeUri())
-          .getElement());
-  private static final ImageElement IMG_PROJECTOR_ON = ImageElement
-      .as(new Image(PlunderResource.INSTANCE.projectorOn().getSafeUri())
-          .getElement());
-  private static final ImageElement IMG_PROJECTOR_OFF = ImageElement
-      .as(new Image(PlunderResource.INSTANCE.projectorOff().getSafeUri())
-          .getElement());
-  private static final ImageElement IMG_UNKNOWN = ImageElement.as(new Image(
-      PlunderResource.INSTANCE.unknown().getSafeUri()).getElement());
-  private static final ImageElement IMG_CHAIR_EMPTY = ImageElement
-      .as(new Image(PlunderResource.INSTANCE.chairEmpty().getSafeUri())
-          .getElement());
-  private static final ImageElement IMG_CHAIR_OCCUPIED = ImageElement
-      .as(new Image(PlunderResource.INSTANCE.chairOccupied().getSafeUri())
-          .getElement());
-  private static final ImageElement IMG_COFFEE_OLD = ImageElement.as(new Image(
-      PlunderResource.INSTANCE.coffeepotOld().getSafeUri()).getElement());
-  private static final ImageElement IMG_COFFEE_FRESH = ImageElement
-      .as(new Image(PlunderResource.INSTANCE.coffeepotFresh().getSafeUri())
-          .getElement());
-  private static final ImageElement IMG_DUCT_TAPE = ImageElement.as(new Image(
-      PlunderResource.INSTANCE.ductTape().getSafeUri()).getElement());
-  private static final ImageElement IMG_GLUEGUN = ImageElement.as(new Image(
-      PlunderResource.INSTANCE.glueGun().getSafeUri()).getElement());
-  private static final ImageElement IMG_MICROWAVE_OFF = ImageElement
-      .as(new Image(PlunderResource.INSTANCE.microwaveOff().getSafeUri())
-          .getElement());
-  private static final ImageElement IMG_MICROWAVE_ON = ImageElement
-      .as(new Image(PlunderResource.INSTANCE.microwaveOn().getSafeUri())
-          .getElement());
-  private static final ImageElement IMG_MUG = ImageElement.as(new Image(
-      PlunderResource.INSTANCE.mug().getSafeUri()).getElement());
-  private static final ImageElement IMG_PACKINGTAPE = ImageElement
-      .as(new Image(PlunderResource.INSTANCE.packingTape().getSafeUri())
-          .getElement());
-  private static final ImageElement IMG_SCREEN_ON = ImageElement.as(new Image(
-      PlunderResource.INSTANCE.screenOn().getSafeUri()).getElement());
-  private static final ImageElement IMG_SCREEN_OFF = ImageElement.as(new Image(
-      PlunderResource.INSTANCE.screenOff().getSafeUri()).getElement());
+  // FIXME: Big hack for totalIcons.
+  int totalIcons = 22;
+  int loadedIcons = 0;
+  
+  private static final String KEY_RECEIVER = "receiver";
+  private static final String KEY_TRANSMITTER = "transmitter";
+  private static final String KEY_DOOR_OPEN = "door-open";
+  private static final String KEY_DOOR_CLOSED = "door-closed";
+  private static final String KEY_PROJECTOR_ON = "projector-on";
+  private static final String KEY_PROJECTOR_OFF = "projector-off";
+  private static final String KEY_UNKNOWN = "unknown";
+  private static final String KEY_CHAIR_EMPTY = "chair-empty";
+  private static final String KEY_CHAIR_OCCUPIED = "chair-occupied";
+  private static final String KEY_COFFEE_OLD = "coffee-old";
+  private static final String KEY_COFFEE_FRESH = "coffee-fresh";
+  private static final String KEY_DUCT_TAPE = "duct tape";
+  private static final String KEY_GLUE_GUN = "glue gun";
+  private static final String KEY_MICROWAVE_OFF = "microwave-off";
+  private static final String KEY_MICROWAVE_ON = "microwave-on";
+  private static final String KEY_MUG = "mug";
+  private static final String KEY_PACKING_TAPE = "packing tape";
+  private static final String KEY_SCREEN_OFF = "screen-off";
+  private static final String KEY_SCREEN_ON = "screen-on";
+  private static final String KEY_SOLDERING_IRON = "soldering iron";
+  private static final String KEY_REFRIGERATOR = "refrigerator";
+  private static final String KEY_PRINTER = "printer";
+
+  private Map<String, ImageWrapper> iconImages = new HashMap<String, ImageWrapper>();
+
+  private static final Image IMG_RECEIVER = new Image(PlunderResource.INSTANCE
+      .receiver().getSafeUri());
+
+  private static final Image IMG_TRANSMITTER = new Image(
+      PlunderResource.INSTANCE.transmitter().getSafeUri());
+
+  private static final Image IMG_DOOR_OPEN = new Image(PlunderResource.INSTANCE
+      .doorOpen().getSafeUri());
+
+  private static final Image IMG_DOOR_CLOSED = new Image(
+      PlunderResource.INSTANCE.doorClosed().getSafeUri());
+
+  private static final Image IMG_PROJECTOR_ON = (new Image(
+      PlunderResource.INSTANCE.projectorOn().getSafeUri()));
+  private static final Image IMG_PROJECTOR_OFF = new Image(
+      PlunderResource.INSTANCE.projectorOff().getSafeUri());
+  private static final Image IMG_UNKNOWN = new Image(PlunderResource.INSTANCE
+      .unknown().getSafeUri());
+  private static final Image IMG_CHAIR_EMPTY = new Image(
+      PlunderResource.INSTANCE.chairEmpty().getSafeUri());
+  private static final Image IMG_CHAIR_OCCUPIED = new Image(
+      PlunderResource.INSTANCE.chairOccupied().getSafeUri());
+  private static final Image IMG_COFFEE_OLD = new Image(
+      PlunderResource.INSTANCE.coffeepotOld().getSafeUri());
+  private static final Image IMG_COFFEE_FRESH = new Image(
+      PlunderResource.INSTANCE.coffeepotFresh().getSafeUri());
+
+  private static final Image IMG_DUCT_TAPE = new Image(PlunderResource.INSTANCE
+      .ductTape().getSafeUri());
+  private static final Image IMG_GLUEGUN = new Image(PlunderResource.INSTANCE
+      .glueGun().getSafeUri());
+  private static final Image IMG_MICROWAVE_OFF = new Image(
+      PlunderResource.INSTANCE.microwaveOff().getSafeUri());
+  private static final Image IMG_MICROWAVE_ON = new Image(
+      PlunderResource.INSTANCE.microwaveOn().getSafeUri());
+  private static final Image IMG_MUG = new Image(PlunderResource.INSTANCE.mug()
+      .getSafeUri());
+  private static final Image IMG_PACKINGTAPE = new Image(
+      PlunderResource.INSTANCE.packingTape().getSafeUri());
+  private static final Image IMG_SCREEN_ON = new Image(PlunderResource.INSTANCE
+      .screenOn().getSafeUri());
+  private static final Image IMG_SCREEN_OFF = new Image(
+      PlunderResource.INSTANCE.screenOff().getSafeUri());
+
+  private static final Image IMG_SOLDER = new Image(PlunderResource.INSTANCE
+      .solderingIron().getSafeUri());
+  private static final Image IMG_FRIDGE = new Image(PlunderResource.INSTANCE
+      .refrigerator().getSafeUri());
+  private static final Image IMG_PRINTER = new Image(PlunderResource.INSTANCE
+      .printer().getSafeUri());
 
   private Image regionImage = null;
   private float regionWidth = 1f;
@@ -142,17 +165,27 @@ public class Plunder implements EntryPoint {
 
   private Timer locationUpdateTimer;
 
+  private Label errorText = new Label();
+
   /**
    * This is the entry point method.
    */
   public void onModuleLoad() {
-   
-    
+
     this.canvas = Canvas.createIfSupported();
     this.backBufferCanvas = Canvas.createIfSupported();
 
-    // Load images for receivers
+    this.errorText.setVisible(false);
+    this.regionPanel.add(this.regionBox);
+    this.regionPanel.add(this.regionButton);
+
+    this.mainPanel.addNorth(this.regionPanel, 5);
+
     if (this.canvas == null) {
+      this.mainPanel.addNorth(this.errorText, 5);
+      this.errorText
+          .setText("Sorry, but your browser does not support the HTML5 Canvas element. If you wish to use this application, please upgrade to a newer browser.");
+      this.errorText.setVisible(true);
       return;
     }
     this.canvas.setSize("800" + Style.Unit.PX, "600" + Style.Unit.PX);
@@ -163,13 +196,39 @@ public class Plunder implements EntryPoint {
     ScrollPanel scroller = new ScrollPanel();
     scroller.add(this.canvas);
 
-    this.regionPanel.add(this.regionBox);
-    this.regionPanel.add(this.regionButton);
-
-    this.mainPanel.addNorth(this.regionPanel, 5);
+    // this.mainPanel.add(this.canvas);
     this.mainPanel.add(scroller);
 
     this.mainPanel.setSize("100%", "100%");
+
+    // Preload images
+    {
+      prepareIcon(KEY_RECEIVER, IMG_RECEIVER);
+      prepareIcon(KEY_TRANSMITTER, IMG_TRANSMITTER);
+      prepareIcon(KEY_DOOR_OPEN, IMG_DOOR_OPEN);
+      prepareIcon(KEY_DOOR_CLOSED, IMG_DOOR_CLOSED);
+      prepareIcon(KEY_PROJECTOR_ON, IMG_PROJECTOR_ON);
+      prepareIcon(KEY_PROJECTOR_OFF, IMG_PROJECTOR_OFF);
+      prepareIcon(KEY_UNKNOWN, IMG_UNKNOWN);
+      prepareIcon(KEY_CHAIR_EMPTY, IMG_CHAIR_EMPTY);
+      prepareIcon(KEY_CHAIR_OCCUPIED, IMG_CHAIR_OCCUPIED);
+      prepareIcon(KEY_COFFEE_OLD, IMG_COFFEE_OLD);
+      prepareIcon(KEY_COFFEE_FRESH, IMG_COFFEE_FRESH);
+      prepareIcon(KEY_DUCT_TAPE, IMG_DUCT_TAPE);
+      prepareIcon(KEY_GLUE_GUN, IMG_GLUEGUN);
+      prepareIcon(KEY_MICROWAVE_OFF, IMG_MICROWAVE_OFF);
+      prepareIcon(KEY_MICROWAVE_ON, IMG_MICROWAVE_ON);
+      prepareIcon(KEY_MUG, IMG_MUG);
+      prepareIcon(KEY_PACKING_TAPE, IMG_PACKINGTAPE);
+      prepareIcon(KEY_SCREEN_ON, IMG_SCREEN_ON);
+      prepareIcon(KEY_SCREEN_OFF, IMG_SCREEN_OFF);
+      prepareIcon(KEY_SOLDERING_IRON, IMG_SOLDER);
+      prepareIcon(KEY_REFRIGERATOR, IMG_FRIDGE);
+      prepareIcon(KEY_PRINTER, IMG_PRINTER);
+    }
+  }
+
+  void finishModuleLoad() {
 
     RootLayoutPanel.get().add(this.mainPanel);
 
@@ -181,8 +240,9 @@ public class Plunder implements EntryPoint {
             && Plunder.this.regionUri.length() > 0) {
 
         }
-        
-        log.info("@TIMER: Retrieving objects automatically. (" + Plunder.this.refreshRate + " ms)");
+
+        log.fine("@TIMER: Retrieving objects automatically. ("
+            + Plunder.this.refreshRate + " ms)");
         Plunder.this.wmi.getLocatableDetails(Plunder.this.regionUri);
 
       }
@@ -210,7 +270,8 @@ public class Plunder implements EntryPoint {
 
       @Override
       public void onResize(final ResizeEvent event) {
-        log.info("@WINDOW: Resized to (" + event.getWidth() + ", " + event.getHeight() + ")");
+        log.fine("Window resized to (" + event.getWidth() + ", "
+            + event.getHeight() + ")");
         Plunder.this.resizeCanvas(event.getWidth(), event.getHeight());
 
       }
@@ -222,6 +283,8 @@ public class Plunder implements EntryPoint {
       this.requestTimeout = Math.max(this.refreshRate / 2, 500);
     }
 
+    this.wmi.setRequestTimeoutMs(this.requestTimeout);
+
     String initRegion = Window.Location.getParameter("q");
     if (initRegion != null && initRegion.trim().length() > 0) {
       this.regionBox.setText(initRegion);
@@ -230,7 +293,8 @@ public class Plunder implements EntryPoint {
 
         @Override
         public void execute() {
-          log.info("@DEFER: Loading initial region value: " + Plunder.this.regionUri);
+          log.fine("(Def. Ex.)Loading initial region value: "
+              + Plunder.this.regionUri);
           Plunder.this.loadNewRegion();
         }
       });
@@ -238,10 +302,33 @@ public class Plunder implements EntryPoint {
     }
   }
 
+  void prepareIcon(final String match, final Image icon) {
+
+    ImageWrapper wrapper = new ImageWrapper(icon);
+    this.iconImages.put(match, wrapper);
+
+    icon.setVisible(false);
+
+    icon.addLoadHandler(new LoadHandler() {
+
+      @Override
+      public void onLoad(LoadEvent event) {
+        RootPanel.get().remove(icon);
+        ++Plunder.this.loadedIcons;
+        if (Plunder.this.loadedIcons >= Plunder.this.totalIcons) {
+          Plunder.this.finishModuleLoad();
+        }
+        Plunder.log.finer("Loaded: " + Plunder.this.loadedIcons + "/"
+            + Plunder.this.totalIcons + " icons");
+      }
+    });
+    RootPanel.get().add(icon);
+  }
+
   void loadNewRegion() {
     this.regionUri = this.regionBox.getText().trim();
-    log.severe("Loading region " + this.regionUri);
-    
+    log.fine("Loading region " + this.regionUri);
+
     if (this.locationUpdateTimer != null) {
       this.locationUpdateTimer.cancel();
     }
@@ -250,8 +337,7 @@ public class Plunder implements EntryPoint {
     this.regionHeight = 1f;
     this.regionWidthToHeight = 1f;
     this.objectLocations.clear();
-    
-    
+
     this.redrawBuffer();
     if (this.regionUri.length() == 0) {
       this.regionUri = null;
@@ -263,13 +349,16 @@ public class Plunder implements EntryPoint {
 
   void repaint() {
 
-    log.severe("+REPAINT: Clearing (" + this.canvas.getCoordinateSpaceWidth() + ", " + this.canvas.getCoordinateSpaceHeight() +")");
-    
+    log.fine("Clearing canvas (" + this.canvas.getCoordinateSpaceWidth() + ", "
+        + this.canvas.getCoordinateSpaceHeight() + ")");
+
     this.context.clearRect(0, 0, Plunder.this.canvas.getCoordinateSpaceWidth(),
         Plunder.this.canvas.getCoordinateSpaceHeight());
     if (this.canvas.getCoordinateSpaceWidth() > 0
         && this.canvas.getCoordinateSpaceHeight() > 0) {
-      log.severe("+REPAINT: Drawing (" + this.backBufferCanvas.getCoordinateSpaceWidth() + ", " + this.backBufferCanvas.getCoordinateSpaceHeight() +")");
+      log.fine("Drawing from backbuffer ("
+          + this.backBufferCanvas.getCoordinateSpaceWidth() + ", "
+          + this.backBufferCanvas.getCoordinateSpaceHeight() + ")");
       this.context.drawImage(Plunder.this.backBufferCanvas.getCanvasElement(),
           0, 0);
     }
@@ -277,15 +366,16 @@ public class Plunder implements EntryPoint {
   }
 
   void resizeCanvas(int newWidth, int newHeight) {
-    log.severe("+RESIZE (" + newWidth + ", " + newHeight + ")");
+    log.fine("Canvas resize requested (" + newWidth + ", " + newHeight + ")");
     int width = newWidth;
     int height = newHeight;
 
     if (this.regionImage != null && this.regionImage.getWidth() > 0) {
       width = this.regionImage.getWidth();
       height = this.regionImage.getHeight();
-      log.info("+RESIZE: Using image dimensions (" + width + ", " + height + ")");
+
     }
+    log.fine("Actual resize dimensions (" + width + ", " + height + ")");
 
     // this.canvas.getCanvasElement().setWidth(width);
     // this.canvas.getCanvasElement().setHeight(height);
@@ -294,7 +384,8 @@ public class Plunder implements EntryPoint {
     this.canvas.setCoordinateSpaceHeight((int) height);
     this.backBufferCanvas.setCoordinateSpaceWidth((int) width);
     this.backBufferCanvas.setCoordinateSpaceHeight((int) height);
-    this.canvas.setSize(width + Style.Unit.PX.getType(), height + Style.Unit.PX.getType());
+    this.canvas.setSize(width + Style.Unit.PX.getType(),
+        height + Style.Unit.PX.getType());
 
     int drawWidth = width;
     int drawHeight = (int) (width / this.regionWidthToHeight);
@@ -305,12 +396,13 @@ public class Plunder implements EntryPoint {
       drawWidth = (int) (height * this.regionWidthToHeight);
     }
 
-    log.info("+RESIZE: Drawable area (" + drawWidth + ", " + drawHeight + ")");
-    
+    log.fine("Drawable area (" + drawWidth + ", " + drawHeight + ")");
+
     this.regionToScreenX = drawWidth / this.regionWidth;
     this.regionToScreenY = drawHeight / this.regionHeight;
-    
-    log.info("+RESIZE: Ratios X: " + this.regionToScreenX + ", Y: " + this.regionToScreenY);
+
+    log.fine("Ratios X: " + this.regionToScreenX + ", Y: "
+        + this.regionToScreenY);
 
     // this.canvas.getCanvasElement().setWidth((int) (width *
     // this.magnification));
@@ -326,11 +418,11 @@ public class Plunder implements EntryPoint {
   }
 
   private void redrawBuffer() {
-    
+
     int sWidth = this.canvas.getCoordinateSpaceWidth();
     int sHeight = this.canvas.getCoordinateSpaceHeight();
-    log.severe("+REDRAW onto (" + sWidth + ", " + sHeight + ")");
-    
+    log.fine("Rendering onto (" + sWidth + ", " + sHeight + ")");
+
     int drawWidth = sWidth;
     int drawHeight = (int) (sWidth / this.regionWidthToHeight);
 
@@ -340,13 +432,13 @@ public class Plunder implements EntryPoint {
       drawWidth = (int) (sHeight * this.regionWidthToHeight);
     }
 
-    log.info("+REDRAW: Drawable area (" + drawWidth + ", " + drawHeight + ")");
-    
+    log.fine("Drawable area (" + drawWidth + ", " + drawHeight + ")");
+
     // Get dimensions of browser of root panel
 
     // this.canvas.setCoordinateSpaceHeight(sHeight);
     // this.canvas.setCoordinateSpaceWidth(sWidth);
-    log.info("+REDRAW: Clearing back (" + sWidth + ", " + sHeight + ")");
+    log.fine("Clearing backbuffer (" + sWidth + ", " + sHeight + ")");
     this.backBufferContext.clearRect(0, 0, sWidth, sHeight);
 
     // Draw region image
@@ -386,12 +478,35 @@ public class Plunder implements EntryPoint {
     this.wmi.getLocatableDetails(this.regionUri);
   }
 
+  protected void updateLocatableObjInfo(final JsArray<JsWorldState> objStateArray) {
+    
+    if(objStateArray == null || objStateArray.length() == 0){
+      log.info("No objects received.");
+      return;
+    }
+    
+    Scheduler.get().scheduleIncremental(new RepeatingCommand() {
+      private int stepSize = 10;
+      private int offset = 0;
+
+      @Override
+      public boolean execute() {
+        boolean retVal = Plunder.this.incrementalObjUpdate(objStateArray,
+            stepSize, offset);
+        if (retVal) {
+          offset += stepSize;
+        }
+        return retVal;
+      }
+    });
+
+  }
+
   protected void updateRegionInfo(JsArray<JsWorldState> regionStateArray) {
-    log.severe("+REGION UPDATE");
+    log.info("Region information received.");
     if (regionStateArray == null || regionStateArray.length() == 0) {
       return;
     }
-
     JsWorldState iState = regionStateArray.get(0);
     WorldState newRegion = new WorldState();
     newRegion.setUri(iState.getUri());
@@ -412,21 +527,21 @@ public class Plunder implements EntryPoint {
         String imageUrl = jAttr.getData();
         // Image.prefetch(imageUrl);
         Image regionBgImg = new Image(imageUrl);
-        log.info("+REGION: Image URL: " + imageUrl);
+        log.fine("Region Image URL: " + imageUrl);
         this.regionImage = regionBgImg;
       }
 
       // Check for region dimensions
       else if (jAttr.getName().equals("location.maxx")) {
         this.regionWidth = Float.parseFloat(jAttr.getData());
-        log.info("+REGION: X-Max: " + this.regionWidth);
+        log.fine("Region X-Max: " + this.regionWidth);
         // this.regionToScreenX =
         // this.backBufferCanvas.getCoordinateSpaceWidth()
         // / this.regionWidth;
 
       } else if (jAttr.getName().equals("location.maxy")) {
         this.regionHeight = Float.parseFloat(jAttr.getData());
-        log.info("+REGION: Y-Max: " + this.regionHeight);
+        log.fine("Region Y-Max: " + this.regionHeight);
         // this.regionToScreenY =
         // this.backBufferCanvas.getCoordinateSpaceHeight()
         // / this.regionHeight;
@@ -437,77 +552,87 @@ public class Plunder implements EntryPoint {
     if (this.regionHeight > 0 && this.regionWidth > 0) {
       this.regionWidthToHeight = this.regionWidth / this.regionHeight;
     }
-    
-    log.info("+REGION: Region A/R: " + this.regionWidthToHeight + " (" + this.regionWidth + "/" + this.regionHeight + ")");
+
+    log.fine("Region A/R: " + this.regionWidthToHeight + " ("
+        + this.regionWidth + "/" + this.regionHeight + ")");
 
     // Defer the next step until the region image is loaded
-    if(this.regionImage != null){
+    if (this.regionImage != null) {
       this.regionImage.setVisible(false);
-      RootPanel.get().add(this.regionImage);
       this.regionImage.addLoadHandler(new LoadHandler() {
-        
+
         @Override
         public void onLoad(LoadEvent event) {
-          log.severe("+REGION IMAGE LOADED");
+          log.fine("(Def. Ex.) Region image loaded.");
           RootPanel.get().remove(Plunder.this.regionImage);
           Plunder.this.finishRegionLoading();
-          
-          
+
         }
       });
-    }
-    else{
+      RootPanel.get().add(this.regionImage);
+
+    } else {
       this.finishRegionLoading();
     }
   }
-  
-  protected void finishRegionLoading(){
+
+  protected void finishRegionLoading() {
     this.resizeCanvas((int) Plunder.this.regionWidth,
         (int) Plunder.this.regionHeight);
 
-//    Plunder.this.redrawBuffer();
+    // Plunder.this.redrawBuffer();
 
     this.wmi.getLocatableDetails(Plunder.this.regionUri);
-    this.locationUpdateTimer
-        .scheduleRepeating(Plunder.this.refreshRate);
+    this.locationUpdateTimer.scheduleRepeating(Plunder.this.refreshRate);
   }
 
-  protected void updateLocatableObjInfo(JsArray<JsWorldState> objectStates) {
+  protected boolean incrementalObjUpdate(JsArray<JsWorldState> objectStates, int stepSize, int offset) {
 
-    log.severe("+OBJECT Update");
-    
-    if (objectStates == null || objectStates.length() == 0) {
-      return;
-    }
+   
+    int totalObjects = objectStates.length();
 
     boolean dirty = false;
-    for (int i = 0; i < objectStates.length(); ++i) {
+    int i = offset;
+    int j = 0;
+    for (; j < stepSize && i < totalObjects; ++i) {
+      log.finer("Object " + (i + 1) + "/" + (totalObjects) + ".");
 
       JsWorldState iState = objectStates.get(i);
       String uri = iState.getUri();
       // In case we have old data coming back late.
       if (!uri.contains(this.regionUri)) {
+        log.info("Skipping " + uri + " with incorrect region name.");
         continue;
       }
       DrawableObject currObject = this.objectLocations.get(uri);
 
       DrawableObject newObject = createObject(iState);
       if (currObject == null || !currObject.equals(newObject)) {
+        log.finer("[" + newObject + "] has changed [" + currObject
+            + "]. Updating object location.");
         dirty = true;
         this.objectLocations.put(uri, newObject);
       }
     }
+    
+    if(i < totalObjects){
+      return true;
+    }
+
     if (dirty) {
-      log.info("+OBJECT: Dirty, redrawing.");
+      log.fine("1 or more objects is dirty, buffer should be redrawn.");
       Scheduler.get().scheduleDeferred(new ScheduledCommand() {
-        
+
         @Override
         public void execute() {
-          log.info("+DEFER: Redrawing dirty back buffer.");
+          log.fine("(Def. Ex.) Redrawing dirty back buffer.");
           Plunder.this.redrawBuffer();
         }
       });
     }
+
+    log.fine("Completed object updates.");
+    return false;
   }
 
   DrawableObject createObject(final JsWorldState fromState) {
@@ -534,50 +659,109 @@ public class Plunder implements EntryPoint {
       }
     }
 
+    ImageWrapper wrapper1, wrapper2;
+
     if (uri.contains("receiver")) {
+      wrapper1 = this.iconImages.get(KEY_RECEIVER);
       obj = new DrawableObject(uri);
-      obj.setIcon(this.IMG_RECEIVER);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     } else if (uri.contains("transmitter")) {
+      wrapper1 = this.iconImages.get(KEY_TRANSMITTER);
       obj = new DrawableObject(uri);
-      obj.setIcon(this.IMG_TRANSMITTER);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     } else if (uri.contains("door")) {
-      obj = new Door(uri, IMG_DOOR_OPEN, IMG_DOOR_CLOSED, binaryValue);
+      wrapper1 = this.iconImages.get(KEY_DOOR_OPEN);
+      wrapper2 = this.iconImages.get(KEY_DOOR_CLOSED);
+      obj = new Door(uri, wrapper1.getElement(),
+          wrapper1.getImage().getWidth(), wrapper1.getImage().getHeight(),
+          wrapper2.getElement(), wrapper2.getImage().getWidth(), wrapper2
+              .getImage().getHeight(), binaryValue);
     } else if (uri.contains("projector")) {
-      obj = new Projector(uri, IMG_PROJECTOR_ON, IMG_PROJECTOR_OFF, binaryValue);
+      wrapper1 = this.iconImages.get(KEY_PROJECTOR_ON);
+      wrapper2 = this.iconImages.get(KEY_PROJECTOR_OFF);
+      obj = new Projector(uri, wrapper1.getElement(), wrapper1.getImage()
+          .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
+          wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
+          binaryValue);
     } else if (uri.contains("coffee pot")) {
       obj = new DrawableObject(uri);
+      wrapper1 = this.iconImages.get(KEY_COFFEE_OLD);
       // TODO: Coffee with state?
-      obj.setIcon(IMG_COFFEE_OLD);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     } else if (uri.contains("mug")) {
       obj = new DrawableObject(uri);
-      obj.setIcon(IMG_MUG);
+      wrapper1 = this.iconImages.get(KEY_MUG);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     } else if (uri.contains("microwave")) {
-      obj = new Microwave(uri, IMG_MICROWAVE_ON, IMG_MICROWAVE_OFF, binaryValue);
+      wrapper1 = this.iconImages.get(KEY_MICROWAVE_ON);
+      wrapper2 = this.iconImages.get(KEY_MICROWAVE_OFF);
+      obj = new Microwave(uri, wrapper1.getElement(), wrapper1.getImage()
+          .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
+          wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
+          binaryValue);
     } else if (uri.contains("duct tape")) {
+      wrapper1 = this.iconImages.get(KEY_DUCT_TAPE);
       obj = new DrawableObject(uri);
-      obj.setIcon(IMG_DUCT_TAPE);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     } else if (uri.contains("hot glue gun")) {
       obj = new DrawableObject(uri);
-      obj.setIcon(IMG_GLUEGUN);
+      wrapper1 = this.iconImages.get(KEY_GLUE_GUN);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     } else if (uri.contains("chair")) {
-      obj = new Chair(uri, IMG_CHAIR_OCCUPIED, IMG_CHAIR_EMPTY, binaryValue);
+      wrapper1 = this.iconImages.get(KEY_CHAIR_OCCUPIED);
+      wrapper2 = this.iconImages.get(KEY_CHAIR_EMPTY);
+      obj = new Chair(uri, wrapper1.getElement(), wrapper1.getImage()
+          .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
+          wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
+          binaryValue);
     } else if (uri.contains("packing tape")) {
+      wrapper1 = this.iconImages.get(KEY_PACKING_TAPE);
       obj = new DrawableObject(uri);
-      obj.setIcon(IMG_PACKINGTAPE);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     } else if (uri.contains("screen")) {
-      obj = new Screen(uri, IMG_SCREEN_ON, IMG_SCREEN_OFF, binaryValue);
+      wrapper1 = this.iconImages.get(KEY_SCREEN_ON);
+      wrapper2 = this.iconImages.get(KEY_SCREEN_OFF);
+      obj = new Screen(uri, wrapper1.getElement(), wrapper1.getImage()
+          .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
+          wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
+          binaryValue);
+    } else if (uri.contains(KEY_SOLDERING_IRON)) {
+      obj = new DrawableObject(uri);
+      wrapper1 = this.iconImages.get("soldering iron");
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
+    } else if (uri.contains("refrigerator")) {
+      wrapper1 = this.iconImages.get(KEY_REFRIGERATOR);
+      obj = new DrawableObject(uri);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
+    } else if (uri.contains("printer")) {
+      obj = new DrawableObject(uri);
+      wrapper1 = this.iconImages.get(KEY_PRINTER);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     }
 
     else {
+      wrapper1 = this.iconImages.get(KEY_UNKNOWN);
       obj = new DrawableObject(uri);
-      obj.setIcon(this.IMG_UNKNOWN);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     }
 
     obj.setxOffset(xOff);
     // FIXME: Nasty hack for Y-translation
     obj.setyOffset(this.regionHeight - yOff);
-    
-    log.info("+DRAWABLE (" + uri + "): (" + xOff + ", " + yOff + "->" + obj.getyOffset() + ")");
+
+    log.finer(obj.toString() + ": (" + xOff + ", " + yOff + "->"
+        + obj.getyOffset() + ")");
 
     obj.setxScale(this.regionToScreenX);
     obj.setyScale(this.regionToScreenY);

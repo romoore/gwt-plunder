@@ -6,17 +6,22 @@ import com.google.gwt.user.client.ui.Image;
 
 public class Door extends DrawableObject {
 
-  public Door(String uri, ImageElement openIcon, ImageElement closedIcon,
+  public Door(String uri, ImageElement openIcon, int ow, int oh, ImageElement closedIcon, int cw, int ch,
       boolean isOpen) {
     super(uri);
     this.openIcon = openIcon;
     this.closedIcon = closedIcon;
     this.open = isOpen;
+    this.ow = ow;
+    this.oh = oh;
+    this.cw = cw;
+    this.ch = ch;
   }
 
   private boolean open = false;
   private ImageElement openIcon = null;
   private ImageElement closedIcon = null;
+  private int ow, oh, cw, ch;
 
   public void setOpenIcon(ImageElement openIcon) {
     this.openIcon = openIcon;
@@ -28,7 +33,12 @@ public class Door extends DrawableObject {
 
   @Override
   public void draw(Context2d context) {
-    super.icon = this.open ? this.openIcon : this.closedIcon;
+    if(this.open){
+      super.setIcon(this.openIcon, this.ow, this.oh);
+    }
+    else{
+      super.setIcon(this.closedIcon, this.cw, this.ch);
+    }
     super.draw(context);
   }
 
@@ -37,7 +47,7 @@ public class Door extends DrawableObject {
    * {@code setClosedIcon(Image)} should be called to set icon images.
    */
   @Override
-  public void setIcon(ImageElement icon) {
+  public void setIcon(ImageElement icon, int w, int h) {
     // No effect
   }
 

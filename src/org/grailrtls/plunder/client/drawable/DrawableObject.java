@@ -1,18 +1,23 @@
 package org.grailrtls.plunder.client.drawable;
 
+import java.util.logging.Logger;
+
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.user.client.ui.Image;
 
 public class DrawableObject {
+  private static final Logger log = Logger.getLogger(DrawableObject.class.getName());
+  
   private final String uri;
-  private float xOffset= -1f;
+  private float xOffset = -1f;
   private float yOffset = -1f;
-  protected ImageElement icon = null;
+  private ImageElement icon = null;
   private int iconWidth = 0;
   private int iconHeight = 0;
   protected float xScale = 1f;
   protected float yScale = 1f;
+  protected int desiredWidth = 32;
 
   public DrawableObject(final String uri) {
     this.uri = uri;
@@ -59,27 +64,37 @@ public class DrawableObject {
     return false;
   }
 
- 
-
-  public void setIcon(ImageElement icon) {
+  public void setIcon(ImageElement icon, int width, int height) {
     this.icon = icon;
-    this.iconWidth = icon.getWidth();
-    this.iconHeight = icon.getHeight();
+    this.iconWidth = width;
+    this.iconHeight = height;
   }
-  
+
   @Override
-  public String toString(){
-    
-    return this.uri + " @ (" + this.xOffset + ", " + this. yOffset + ") " + (this.icon == null ? "NOIMG" : "IMG");
+  public String toString() {
+
+    return this.uri + " @ (" + this.xOffset + ", " + this.yOffset + ") "
+        + (this.icon == null ? "NOIMG" : "IMG");
   }
-  
-  public void draw(Context2d context){
+
+  public void draw(Context2d context) {
+
     context.save();
-    int xPos = (int)(this.xOffset*this.xScale - this.iconWidth / 2);
-    int yPos = (int)(this.yOffset*this.yScale - this.iconHeight / 2);
+    
+    if (this.iconWidth == 0 || this.iconHeight == 0) {
+      log.warning("NOT Drawing [" + this + "] @ (" + this.iconWidth+ ", " + this.iconHeight+ ")");
+     return;
+    }
+    float imgRatio = 1f*this.iconHeight / this.iconWidth;
+    float drawHeight = this.desiredWidth * imgRatio;
+    
+    int xPos = (int) (this.xOffset * this.xScale - this.desiredWidth / 2);
+    int yPos = (int) (this.yOffset * this.yScale - drawHeight / 2);
     
     context.translate(xPos, yPos);
-    context.drawImage(this.icon, 0, 0);
+    log.finer("Drawing [" + this + "] @ (" + xPos + "->"+ this.desiredWidth+ ", " + yPos + "->" + drawHeight+ ")");
+    context.drawImage(this.icon, 0, 0, this.iconWidth, this.iconHeight, 0, 0,
+        this.desiredWidth, drawHeight);
     context.restore();
   }
 
@@ -97,5 +112,9 @@ public class DrawableObject {
 
   public void setyScale(float yScale) {
     this.yScale = yScale;
+  }
+
+  public void setDesiredWidth(int desiredWidth) {
+    this.desiredWidth = desiredWidth;
   }
 }

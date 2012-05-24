@@ -9,10 +9,10 @@ public interface PlunderResource extends ClientBundle {
   public static final PlunderResource INSTANCE = GWT
       .create(PlunderResource.class);
 
-  @Source("images/chairempty.png")
+  @Source("images/chair_alt-empty.png")
   ImageResource chairEmpty();
 
-  @Source("images/chair.png")
+  @Source("images/chair_alt.png")
   ImageResource chairOccupied();
 
   @Source("images/coffeepot.png")
@@ -50,17 +50,26 @@ public interface PlunderResource extends ClientBundle {
 
   @Source("images/projectoron.png")
   ImageResource projectorOn();
+  
+  @Source("images/printer-alt.png")
+  ImageResource printer();
 
-  @Source("images/antenna.png")
+  @Source("images/receiver_2.png")
   ImageResource receiver();
+  
+  @Source("images/refrigerator.png")
+  ImageResource refrigerator();
   
   @Source("images/screen_off.png")
   ImageResource screenOff();
   
   @Source("images/screen_on.png")
   ImageResource screenOn();
+  
+  @Source("images/solder_iron.png")
+  ImageResource solderingIron();
 
-  @Source("images/antenna.png")
+  @Source("images/transmitter_2.png")
   ImageResource transmitter();
 
   @Source("images/unlabelled.png")

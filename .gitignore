@@ -9,3 +9,4 @@ war/plunder
 *.bz2
 *.gz
 *.tgz
+.gwt

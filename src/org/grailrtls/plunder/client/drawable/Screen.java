@@ -9,20 +9,18 @@ public class Screen extends DrawableObject {
   private ImageElement onIcon;
   private ImageElement offIcon;
   private boolean isOn;
+    private int onw, onh, ofw, ofh;
 
-//  public Screen(String uri) {
-//    this(uri, null, null, false);
-//  }
-//
-//  public Screen(String uri, Image onIcon, Image offIcon) {
-//    this(uri, onIcon, offIcon, false);
-//  }
 
-  public Screen(String uri, ImageElement onIcon, ImageElement offIcon, boolean isOn) {
+  public Screen(String uri, ImageElement onIcon, int onw, int onh, ImageElement offIcon, int ofw, int ofh, boolean isOn) {
     super(uri);
     this.onIcon = onIcon;
     this.offIcon = offIcon;
     this.isOn = isOn;
+    this.onw = onw;
+    this.onh = onh;
+    this.ofw = ofw;
+    this.ofh = ofh;
   }
 
   public boolean equals(Screen s) {
@@ -38,7 +36,7 @@ public class Screen extends DrawableObject {
    * instead.
    */
   @Override
-  public void setIcon(ImageElement icon) {
+  public void setIcon(ImageElement icon, int w, int h) {
     // Does nothing
   }
 
@@ -60,7 +58,11 @@ public class Screen extends DrawableObject {
 
   @Override
   public void draw(Context2d context) {
-    super.icon = this.isOn ? this.onIcon : this.offIcon;
+    if(this.isOn){
+      super.setIcon(this.onIcon, this.onw, this.onh);
+    }else{
+      super.setIcon(this.offIcon, this.ofw, this.ofh);
+    }
     super.draw(context);
   }
 

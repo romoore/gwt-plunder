@@ -9,14 +9,18 @@ public class Projector extends DrawableObject {
   private ImageElement onIcon;
   private ImageElement offIcon;
   private boolean isOn;
+  private int onw, onh, ofw, ofh;
 
 
-
-  public Projector(String uri, ImageElement onIcon, ImageElement offIcon, boolean isOn) {
+  public Projector(String uri, ImageElement onIcon, int onw, int onh, ImageElement offIcon, int ofw, int ofh, boolean isOn) {
     super(uri);
     this.onIcon = onIcon;
     this.offIcon = offIcon;
     this.isOn = isOn;
+    this.onw = onw;
+    this.onh = onh;
+    this.ofw = ofw;
+    this.ofh = ofh;
   }
 
   public boolean equals(Projector p) {
@@ -32,7 +36,7 @@ public class Projector extends DrawableObject {
    * instead.
    */
   @Override
-  public void setIcon(ImageElement icon) {
+  public void setIcon(ImageElement icon, int w, int h) {
     // Does nothing
   }
 
@@ -54,7 +58,11 @@ public class Projector extends DrawableObject {
 
   @Override
   public void draw(Context2d context) {
-    super.icon = this.isOn ? this.onIcon : this.offIcon;
+    if(this.isOn){
+      super.setIcon(this.onIcon, this.onw, this.onh);
+    }else{
+      super.setIcon(this.offIcon, this.ofw, this.ofh);
+    }
     super.draw(context);
   }
 
