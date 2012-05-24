@@ -1,12 +1,16 @@
 package org.grailrtls.plunder.client;
 
+import java.util.logging.Logger;
+
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.JsArray;
 import com.google.gwt.http.client.URL;
 
 public class WorldModelInterface {
+  
+  private static final Logger log = Logger.getLogger(WorldModelInterface.class.getName());
 
-  public static String QUERY_HOST = "grail.rutgers.edu";
+  public static String QUERY_HOST = "localhost";
   public static String QUERY_PORT = "7011";
   public static String QUERY_PATH = "/grailrest";
   public static final String SNAPSHOT_PATH = "/snapshot?uri=";
@@ -34,8 +38,10 @@ public class WorldModelInterface {
     
   
     final String url = URL.encode("http://" + QUERY_HOST + ":" + QUERY_PORT
-        + QUERY_PATH + SNAPSHOT_PATH + regionUri + ".*")
-        + "&attribute=location.[xy]offset&callback=";
+        + QUERY_PATH + SNAPSHOT_PATH + regionUri + ".*"
+        + "&attribute=location.[xy]offset|on|closed|empty&callback=");
+    
+    log.fine("Query URL: " + url);
 
     createLocatableCallback(this.jsonRequestId++, url, this,this.requestTimeoutMs);
   }

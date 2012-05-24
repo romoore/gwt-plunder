@@ -35,6 +35,7 @@ import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.DockLayoutPanel;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.Image;
@@ -66,7 +67,7 @@ public class Plunder implements EntryPoint {
   // FIXME: Big hack for totalIcons.
   int totalIcons = 22;
   int loadedIcons = 0;
-  
+
   private static final String KEY_RECEIVER = "receiver";
   private static final String KEY_TRANSMITTER = "transmitter";
   private static final String KEY_DOOR_OPEN = "door-open";
@@ -478,13 +479,14 @@ public class Plunder implements EntryPoint {
     this.wmi.getLocatableDetails(this.regionUri);
   }
 
-  protected void updateLocatableObjInfo(final JsArray<JsWorldState> objStateArray) {
-    
-    if(objStateArray == null || objStateArray.length() == 0){
+  protected void updateLocatableObjInfo(
+      final JsArray<JsWorldState> objStateArray) {
+
+    if (objStateArray == null || objStateArray.length() == 0) {
       log.info("No objects received.");
       return;
     }
-    
+
     Scheduler.get().scheduleIncremental(new RepeatingCommand() {
       private int stepSize = 10;
       private int offset = 0;
@@ -586,9 +588,9 @@ public class Plunder implements EntryPoint {
     this.locationUpdateTimer.scheduleRepeating(Plunder.this.refreshRate);
   }
 
-  protected boolean incrementalObjUpdate(JsArray<JsWorldState> objectStates, int stepSize, int offset) {
+  protected boolean incrementalObjUpdate(JsArray<JsWorldState> objectStates,
+      int stepSize, int offset) {
 
-   
     int totalObjects = objectStates.length();
 
     boolean dirty = false;
@@ -614,8 +616,8 @@ public class Plunder implements EntryPoint {
         this.objectLocations.put(uri, newObject);
       }
     }
-    
-    if(i < totalObjects){
+
+    if (i < totalObjects) {
       return true;
     }
 
@@ -647,8 +649,25 @@ public class Plunder implements EntryPoint {
     for (int j = 0; j < fromState.getAttributes().length(); ++j) {
       JsAttribute jAttr = fromState.getAttributes().get(j);
       if (jAttr.getName().equals("location.xoffset")) {
+        // Skip dynamic locations for certain objects.
+        if (jAttr.getOrigin().contains("solver")
+            && (uri.contains("screen") || uri.contains("door")
+                || uri.contains("projector") || uri.contains("refrigerator")
+                || uri.contains("printer") || uri.contains("coffee pot") || uri
+                  .contains("microwave"))) {
+          continue;
+        }
+
         xOff = Float.parseFloat(jAttr.getData());
       } else if (jAttr.getName().equals("location.yoffset")) {
+     // Skip dynamic locations for certain objects.
+        if (jAttr.getOrigin().contains("solver")
+            && (uri.contains("screen") || uri.contains("door")
+                || uri.contains("projector") || uri.contains("refrigerator")
+                || uri.contains("printer") || uri.contains("coffee pot") || uri
+                  .contains("microwave"))) {
+          continue;
+        }
         yOff = Float.parseFloat(jAttr.getData());
       } else if (jAttr.getName().equals("on")) {
         binaryValue = Boolean.valueOf(jAttr.getData());

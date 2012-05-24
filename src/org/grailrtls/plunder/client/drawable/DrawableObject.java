@@ -18,6 +18,7 @@ public class DrawableObject {
   protected float xScale = 1f;
   protected float yScale = 1f;
   protected int desiredWidth = 32;
+  private boolean isVisible = true;
 
   public DrawableObject(final String uri) {
     this.uri = uri;
@@ -78,7 +79,9 @@ public class DrawableObject {
   }
 
   public void draw(Context2d context) {
-
+    if(!this.isVisible){
+      return;
+    }
     context.save();
     
     if (this.iconWidth == 0 || this.iconHeight == 0) {
@@ -116,5 +119,13 @@ public class DrawableObject {
 
   public void setDesiredWidth(int desiredWidth) {
     this.desiredWidth = desiredWidth;
+  }
+
+  public boolean isVisible() {
+    return isVisible;
+  }
+
+  public void setVisible(boolean visible) {
+    this.isVisible = visible;
   }
 }
