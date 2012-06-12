@@ -22,6 +22,7 @@ import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.client.Scheduler.RepeatingCommand;
 import com.google.gwt.core.client.Scheduler.ScheduledCommand;
 import com.google.gwt.dom.client.ImageElement;
+import com.google.gwt.dom.client.NativeEvent;
 import com.google.gwt.dom.client.Style;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -30,6 +31,8 @@ import com.google.gwt.event.dom.client.KeyPressEvent;
 import com.google.gwt.event.dom.client.KeyPressHandler;
 import com.google.gwt.event.dom.client.LoadEvent;
 import com.google.gwt.event.dom.client.LoadHandler;
+import com.google.gwt.event.dom.client.MouseDownEvent;
+import com.google.gwt.event.dom.client.MouseDownHandler;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.user.client.Timer;
@@ -40,6 +43,8 @@ import com.google.gwt.user.client.ui.DockLayoutPanel;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.PopupPanel;
+import com.google.gwt.user.client.ui.PopupPanel.PositionCallback;
 import com.google.gwt.user.client.ui.RootLayoutPanel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.ScrollPanel;
@@ -65,7 +70,7 @@ public class Plunder implements EntryPoint {
   private int requestTimeout = 1000;
 
   // FIXME: Big hack for totalIcons.
-  int totalIcons = 22;
+  int totalIcons = 23;
   int loadedIcons = 0;
 
   private static final String KEY_RECEIVER = "receiver";
@@ -90,6 +95,7 @@ public class Plunder implements EntryPoint {
   private static final String KEY_SOLDERING_IRON = "soldering iron";
   private static final String KEY_REFRIGERATOR = "refrigerator";
   private static final String KEY_PRINTER = "printer";
+  private static final String KEY_PHONE = "phone";
 
   private Map<String, ImageWrapper> iconImages = new HashMap<String, ImageWrapper>();
 
@@ -144,6 +150,9 @@ public class Plunder implements EntryPoint {
   private static final Image IMG_PRINTER = new Image(PlunderResource.INSTANCE
       .printer().getSafeUri());
 
+  private static final Image IMG_PHONE = new Image(PlunderResource.INSTANCE
+      .printer().getSafeUri());
+
   private Image regionImage = null;
   private float regionWidth = 1f;
   private float regionHeight = 1f;
@@ -167,6 +176,8 @@ public class Plunder implements EntryPoint {
   private Timer locationUpdateTimer;
 
   private Label errorText = new Label();
+
+  private WorldStatePopup popup = new WorldStatePopup();
 
   /**
    * This is the entry point method.
@@ -226,11 +237,12 @@ public class Plunder implements EntryPoint {
       prepareIcon(KEY_SOLDERING_IRON, IMG_SOLDER);
       prepareIcon(KEY_REFRIGERATOR, IMG_FRIDGE);
       prepareIcon(KEY_PRINTER, IMG_PRINTER);
+      prepareIcon(KEY_PHONE, IMG_PHONE);
     }
   }
 
   void finishModuleLoad() {
-
+    log.fine("Finishing module load.");
     RootLayoutPanel.get().add(this.mainPanel);
 
     this.locationUpdateTimer = new Timer() {
@@ -299,6 +311,46 @@ public class Plunder implements EntryPoint {
           Plunder.this.loadNewRegion();
         }
       });
+
+    }
+
+    this.canvas.addMouseDownHandler(new MouseDownHandler() {
+
+      @Override
+      public void onMouseDown(MouseDownEvent event) {
+        if (event.getNativeButton() == NativeEvent.BUTTON_LEFT) {
+          Plunder.this.showDetailPopup(event);
+        }
+
+      }
+    });
+  }
+
+  void showDetailPopup(final MouseDownEvent event) {
+    for (DrawableObject obj : this.objectLocations.values()) {
+      final int x = event.getX();
+      final int y = event.getY();
+      if (obj.containsPoint(x, y)) {
+        this.popup.setState(obj.getState());
+        this.popup.setPopupPosition(event.getClientX(), event.getClientY());
+        this.popup.setPopupPositionAndShow(new PositionCallback() {
+
+          @Override
+          public void setPosition(int offsetWidth, int offsetHeight) {
+
+            int newX = event.getClientX();
+            int newY = event.getClientY();
+            if (newX + offsetWidth > Window.getClientWidth()) {
+              newX = Window.getClientWidth() - offsetWidth;
+            }
+            if (newY + offsetHeight > Window.getClientHeight()) {
+              newY = Window.getClientHeight() - offsetHeight;
+            }
+            Plunder.this.popup.setPopupPosition(newX, newY);
+
+          }
+        });
+      }
 
     }
   }
@@ -587,13 +639,13 @@ public class Plunder implements EntryPoint {
     this.wmi.getLocatableDetails(Plunder.this.regionUri);
     this.locationUpdateTimer.scheduleRepeating(Plunder.this.refreshRate);
   }
-
+  boolean dirty = false;
   protected boolean incrementalObjUpdate(JsArray<JsWorldState> objectStates,
       int stepSize, int offset) {
 
     int totalObjects = objectStates.length();
 
-    boolean dirty = false;
+    
     int i = offset;
     int j = 0;
     for (; j < stepSize && i < totalObjects; ++i) {
@@ -632,7 +684,7 @@ public class Plunder implements EntryPoint {
         }
       });
     }
-
+    dirty = false;
     log.fine("Completed object updates.");
     return false;
   }
@@ -660,7 +712,7 @@ public class Plunder implements EntryPoint {
 
         xOff = Float.parseFloat(jAttr.getData());
       } else if (jAttr.getName().equals("location.yoffset")) {
-     // Skip dynamic locations for certain objects.
+        // Skip dynamic locations for certain objects.
         if (jAttr.getOrigin().contains("solver")
             && (uri.contains("screen") || uri.contains("door")
                 || uri.contains("projector") || uri.contains("refrigerator")
@@ -766,6 +818,11 @@ public class Plunder implements EntryPoint {
       wrapper1 = this.iconImages.get(KEY_PRINTER);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
+    } else if (uri.contains("phone")) {
+      obj = new DrawableObject(uri);
+      wrapper1 = this.iconImages.get(KEY_PHONE);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     }
 
     else {
@@ -784,7 +841,33 @@ public class Plunder implements EntryPoint {
 
     obj.setxScale(this.regionToScreenX);
     obj.setyScale(this.regionToScreenY);
+    obj.setState(fromJavaScript(fromState));
 
     return obj;
+  }
+
+  protected WorldState fromJavaScript(JsWorldState fromState) {
+    WorldState toState = new WorldState();
+    toState.setUri(fromState.getUri());
+
+    Attribute[] attrs = new Attribute[fromState.getAttributes().length()];
+    toState.setAttributes(attrs);
+
+    for (int i = 0; i < attrs.length; ++i) {
+      attrs[i] = fromJavaScript(fromState.getAttributes().get(i));
+    }
+    return toState;
+  }
+
+  protected Attribute fromJavaScript(JsAttribute fromAttr) {
+    Attribute toAttr = new Attribute();
+
+    toAttr.setName(fromAttr.getName());
+    toAttr.setOrigin(fromAttr.getOrigin());
+    toAttr.setCreated(fromAttr.getCreated());
+    toAttr.setExpires(fromAttr.getExpires());
+    toAttr.setData(fromAttr.getData());
+
+    return toAttr;
   }
 }

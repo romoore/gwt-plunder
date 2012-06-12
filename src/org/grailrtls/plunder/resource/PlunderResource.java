@@ -44,6 +44,9 @@ public interface PlunderResource extends ClientBundle {
 
   @Source("images/packtape.png")
   ImageResource packingTape();
+  
+  @Source("images/phone.png")
+  ImageResource mobilePhone();
 
   @Source("images/projector.png")
   ImageResource projectorOff();

@@ -2,6 +2,8 @@ package org.grailrtls.plunder.client.drawable;
 
 import java.util.logging.Logger;
 
+import org.grailrtls.plunder.client.WorldState;
+
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.user.client.ui.Image;
@@ -19,6 +21,8 @@ public class DrawableObject {
   protected float yScale = 1f;
   protected int desiredWidth = 32;
   private boolean isVisible = true;
+  
+  private WorldState state;
 
   public DrawableObject(final String uri) {
     this.uri = uri;
@@ -42,6 +46,23 @@ public class DrawableObject {
 
   public void setyOffset(float yOffset) {
     this.yOffset = yOffset;
+  }
+  
+  public boolean containsPoint(int x, int y){
+    if(!this.isVisible){
+      return false;
+    }
+    if (this.iconWidth == 0 || this.iconHeight == 0) {
+      return false;
+    }
+    float imgRatio = 1f*this.iconHeight / this.iconWidth;
+    float drawHeight = this.desiredWidth * imgRatio;
+    
+    int xPos = (int) (this.xOffset * this.xScale - this.desiredWidth / 2);
+    int yPos = (int) (this.yOffset * this.yScale - drawHeight / 2);
+    
+    return (x >= xPos && x <= (xPos+this.iconWidth) && y >= yPos && y <= (yPos + drawHeight));
+     
   }
 
   public boolean equals(Object o) {
@@ -127,5 +148,13 @@ public class DrawableObject {
 
   public void setVisible(boolean visible) {
     this.isVisible = visible;
+  }
+
+  public WorldState getState() {
+    return state;
+  }
+
+  public void setState(WorldState state) {
+    this.state = state;
   }
 }
