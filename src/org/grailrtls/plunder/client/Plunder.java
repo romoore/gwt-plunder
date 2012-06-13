@@ -639,13 +639,14 @@ public class Plunder implements EntryPoint {
     this.wmi.getLocatableDetails(Plunder.this.regionUri);
     this.locationUpdateTimer.scheduleRepeating(Plunder.this.refreshRate);
   }
+
   boolean dirty = false;
+
   protected boolean incrementalObjUpdate(JsArray<JsWorldState> objectStates,
       int stepSize, int offset) {
 
     int totalObjects = objectStates.length();
 
-    
     int i = offset;
     int j = 0;
     for (; j < stepSize && i < totalObjects; ++i) {
@@ -654,13 +655,16 @@ public class Plunder implements EntryPoint {
       JsWorldState iState = objectStates.get(i);
       String uri = iState.getUri();
       // In case we have old data coming back late.
-      if (!uri.contains(this.regionUri)) {
-        log.info("Skipping " + uri + " with incorrect region name.");
-        continue;
-      }
+      // if (!uri.contains(this.regionUri)) {
+      // log.info("Skipping " + uri + " with incorrect region name.");
+      // continue;
+      // }
       DrawableObject currObject = this.objectLocations.get(uri);
 
       DrawableObject newObject = createObject(iState);
+      if(newObject == null){
+        continue;
+      }
       if (currObject == null || !currObject.equals(newObject)) {
         log.finer("[" + newObject + "] has changed [" + currObject
             + "]. Updating object location.");
@@ -697,6 +701,8 @@ public class Plunder implements EntryPoint {
     float yOff = -1f;
 
     boolean binaryValue = false; // The binary state it has
+    
+    boolean locationUriMatch = false;
 
     for (int j = 0; j < fromState.getAttributes().length(); ++j) {
       JsAttribute jAttr = fromState.getAttributes().get(j);
@@ -727,7 +733,19 @@ public class Plunder implements EntryPoint {
         binaryValue = !Boolean.valueOf(jAttr.getData());
       } else if (jAttr.getName().equals("empty")) {
         binaryValue = !Boolean.valueOf(jAttr.getData());
+      }else if(jAttr.getName().equals("location.uri")){
+        locationUriMatch = this.regionUri.equals(jAttr.getData());
       }
+    }
+
+    // Not in this region, return null
+    if (!uri.contains(this.regionUri) && !locationUriMatch) {
+      return null;
+    }
+    
+    // No coordinates
+    if(xOff < 0 || yOff < 0){
+      return null;
     }
 
     ImageWrapper wrapper1, wrapper2;

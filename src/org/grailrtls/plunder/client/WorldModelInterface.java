@@ -38,8 +38,8 @@ public class WorldModelInterface {
     
   
     final String url = URL.encode("http://" + QUERY_HOST + ":" + QUERY_PORT
-        + QUERY_PATH + SNAPSHOT_PATH + regionUri + ".*"
-        + "&attribute=location.[xy]offset|on|closed|empty&callback=");
+        + QUERY_PATH + SNAPSHOT_PATH + ".*"
+        + "&attribute=location.[xy]offset|on|closed|empty|location.uri&callback=");
     
     log.fine("Query URL: " + url);
 
