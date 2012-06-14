@@ -19,7 +19,8 @@ public class DrawableObject {
   private int iconHeight = 0;
   protected float xScale = 1f;
   protected float yScale = 1f;
-  protected int desiredWidth = 32;
+  protected static int desiredWidth = 32;
+  protected static int maxHeight = 48;
   private boolean isVisible = true;
   
   private WorldState state;
@@ -109,16 +110,21 @@ public class DrawableObject {
       log.warning("NOT Drawing [" + this + "] @ (" + this.iconWidth+ ", " + this.iconHeight+ ")");
      return;
     }
-    float imgRatio = 1f*this.iconHeight / this.iconWidth;
-    float drawHeight = this.desiredWidth * imgRatio;
+    float imgRatio = ((float)this.iconHeight) / this.iconWidth;
+    float drawHeight = DrawableObject.desiredWidth * imgRatio;
+    float drawWidth = DrawableObject.desiredWidth;
+    if(drawHeight > DrawableObject.maxHeight){
+      drawHeight = DrawableObject.maxHeight;
+      drawWidth = DrawableObject.maxHeight / imgRatio;
+    }
     
-    int xPos = (int) (this.xOffset * this.xScale - this.desiredWidth / 2);
+    int xPos = (int) (this.xOffset * this.xScale - drawWidth / 2);
     int yPos = (int) (this.yOffset * this.yScale - drawHeight / 2);
     
     context.translate(xPos, yPos);
-    log.finer("Drawing [" + this + "] @ (" + xPos + "->"+ this.desiredWidth+ ", " + yPos + "->" + drawHeight+ ")");
+    log.finer("Drawing [" + this + "] @ (" + xPos + "->"+ drawWidth+ ", " + yPos + "->" + drawHeight+ ")");
     context.drawImage(this.icon, 0, 0, this.iconWidth, this.iconHeight, 0, 0,
-        this.desiredWidth, drawHeight);
+        drawWidth, drawHeight);
     context.restore();
   }
 
