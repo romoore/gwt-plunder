@@ -151,7 +151,7 @@ public class Plunder implements EntryPoint {
       .printer().getSafeUri());
 
   private static final Image IMG_PHONE = new Image(PlunderResource.INSTANCE
-      .printer().getSafeUri());
+      .mobilePhone().getSafeUri());
 
   private Image regionImage = null;
   private float regionWidth = 1f;
