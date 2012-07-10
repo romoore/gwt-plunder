@@ -10,3 +10,7 @@ war/plunder
 *.gz
 *.tgz
 .gwt
+# Eclipse files
+.settings
+.project
+.classpath
