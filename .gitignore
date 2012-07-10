@@ -1,3 +1,5 @@
+# Built components
+*.jar
 *.class
 *classes
 *deploy
@@ -10,7 +12,9 @@ war/plunder
 *.gz
 *.tgz
 .gwt
+
 # Eclipse files
 .settings
 .project
 .classpath
+
