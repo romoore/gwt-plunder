@@ -1,20 +1,18 @@
 package org.grailrtls.plunder.client;
 
-import com.google.gwt.core.client.JavaScriptObject;
-import com.google.gwt.core.client.JsArray;
 
 
 public class WorldState{
-  private String uri;
+  private String identifier;
   private Attribute[] attributes;
   
   protected WorldState(){
     
   }
   
-  public final void setUri(final String uri)  {this.uri = uri;}
+  public final void setId(final String identifier)  {this.identifier = identifier;}
   
-  public final String getUri() {return this.uri;}
+  public final String getId() {return this.identifier;}
   
   public final Attribute[] getAttributes() { return this.attributes; }
   

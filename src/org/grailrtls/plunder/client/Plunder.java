@@ -157,7 +157,7 @@ public class Plunder implements EntryPoint {
   private float regionWidth = 1f;
   private float regionHeight = 1f;
   private float regionWidthToHeight = 1f;
-  private String regionUri = null;
+  private String regionId = null;
 
   private float regionToScreenX = 1f;
   private float regionToScreenY = 1f;
@@ -249,14 +249,14 @@ public class Plunder implements EntryPoint {
 
       @Override
       public void run() {
-        if (Plunder.this.regionUri != null
-            && Plunder.this.regionUri.length() > 0) {
+        if (Plunder.this.regionId != null
+            && Plunder.this.regionId.length() > 0) {
 
         }
 
         log.fine("@TIMER: Retrieving objects automatically. ("
             + Plunder.this.refreshRate + " ms)");
-        Plunder.this.wmi.getLocatableDetails(Plunder.this.regionUri);
+        Plunder.this.wmi.getLocatableDetails();
 
       }
     };
@@ -301,13 +301,13 @@ public class Plunder implements EntryPoint {
     String initRegion = Window.Location.getParameter("q");
     if (initRegion != null && initRegion.trim().length() > 0) {
       this.regionBox.setText(initRegion);
-      this.regionUri = initRegion;
+      this.regionId = initRegion;
       Scheduler.get().scheduleDeferred(new ScheduledCommand() {
 
         @Override
         public void execute() {
           log.fine("(Def. Ex.)Loading initial region value: "
-              + Plunder.this.regionUri);
+              + Plunder.this.regionId);
           Plunder.this.loadNewRegion();
         }
       });
@@ -379,8 +379,8 @@ public class Plunder implements EntryPoint {
   }
 
   void loadNewRegion() {
-    this.regionUri = this.regionBox.getText().trim();
-    log.fine("Loading region " + this.regionUri);
+    this.regionId = this.regionBox.getText().trim();
+    log.fine("Loading region " + this.regionId);
 
     if (this.locationUpdateTimer != null) {
       this.locationUpdateTimer.cancel();
@@ -392,8 +392,8 @@ public class Plunder implements EntryPoint {
     this.objectLocations.clear();
 
     this.redrawBuffer();
-    if (this.regionUri.length() == 0) {
-      this.regionUri = null;
+    if (this.regionId.length() == 0) {
+      this.regionId = null;
       return;
     }
     this.prepareRegionUrl();
@@ -518,17 +518,17 @@ public class Plunder implements EntryPoint {
   }
 
   final void prepareRegionUrl() {
-    if (this.regionUri == null) {
+    if (this.regionId == null) {
       return;
     }
-    this.wmi.getRegionDetails(this.regionUri);
+    this.wmi.getRegionDetails(this.regionId);
   }
 
   final void prepareLocatableUrl() {
-    if (this.regionUri == null) {
+    if (this.regionId == null) {
       return;
     }
-    this.wmi.getLocatableDetails(this.regionUri);
+    this.wmi.getLocatableDetails();
   }
 
   protected void updateLocatableObjInfo(
@@ -563,7 +563,7 @@ public class Plunder implements EntryPoint {
     }
     JsWorldState iState = regionStateArray.get(0);
     WorldState newRegion = new WorldState();
-    newRegion.setUri(iState.getUri());
+    newRegion.setId(iState.getIdentifier());
     Attribute[] attribs = new Attribute[iState.getAttributes().length()];
     newRegion.setAttributes(attribs);
     for (int j = 0; j < iState.getAttributes().length(); ++j) {
@@ -636,7 +636,7 @@ public class Plunder implements EntryPoint {
 
     // Plunder.this.redrawBuffer();
 
-    this.wmi.getLocatableDetails(Plunder.this.regionUri);
+    this.wmi.getLocatableDetails();
     this.locationUpdateTimer.scheduleRepeating(Plunder.this.refreshRate);
   }
 
@@ -653,13 +653,13 @@ public class Plunder implements EntryPoint {
       log.finer("Object " + (i + 1) + "/" + (totalObjects) + ".");
 
       JsWorldState iState = objectStates.get(i);
-      String uri = iState.getUri();
+      String identifier = iState.getIdentifier();
       // In case we have old data coming back late.
       // if (!uri.contains(this.regionUri)) {
       // log.info("Skipping " + uri + " with incorrect region name.");
       // continue;
       // }
-      DrawableObject currObject = this.objectLocations.get(uri);
+      DrawableObject currObject = this.objectLocations.get(identifier);
 
       DrawableObject newObject = createObject(iState);
       if(newObject == null){
@@ -669,7 +669,7 @@ public class Plunder implements EntryPoint {
         log.finer("[" + newObject + "] has changed [" + currObject
             + "]. Updating object location.");
         dirty = true;
-        this.objectLocations.put(uri, newObject);
+        this.objectLocations.put(identifier, newObject);
       }
     }
 
@@ -695,7 +695,7 @@ public class Plunder implements EntryPoint {
 
   DrawableObject createObject(final JsWorldState fromState) {
     DrawableObject obj = null;
-    String uri = fromState.getUri();
+    String identifier = fromState.getIdentifier();
 
     float xOff = -1f;
     float yOff = -1f;
@@ -709,9 +709,9 @@ public class Plunder implements EntryPoint {
       if (jAttr.getName().equals("location.xoffset")) {
         // Skip dynamic locations for certain objects.
         if (jAttr.getOrigin().contains("solver")
-            && (uri.contains("screen") || uri.contains("door")
-                || uri.contains("projector") || uri.contains("refrigerator")
-                || uri.contains("printer") || uri.contains("coffee pot") || uri
+            && (identifier.contains("screen") || identifier.contains("door")
+                || identifier.contains("projector") || identifier.contains("refrigerator")
+                || identifier.contains("printer") || identifier.contains("coffee pot") || identifier
                   .contains("microwave"))) {
           continue;
         }
@@ -720,9 +720,9 @@ public class Plunder implements EntryPoint {
       } else if (jAttr.getName().equals("location.yoffset")) {
         // Skip dynamic locations for certain objects.
         if (jAttr.getOrigin().contains("solver")
-            && (uri.contains("screen") || uri.contains("door")
-                || uri.contains("projector") || uri.contains("refrigerator")
-                || uri.contains("printer") || uri.contains("coffee pot") || uri
+            && (identifier.contains("screen") || identifier.contains("door")
+                || identifier.contains("projector") || identifier.contains("refrigerator")
+                || identifier.contains("printer") || identifier.contains("coffee pot") || identifier
                   .contains("microwave"))) {
           continue;
         }
@@ -734,12 +734,12 @@ public class Plunder implements EntryPoint {
       } else if (jAttr.getName().equals("empty")) {
         binaryValue = !Boolean.valueOf(jAttr.getData());
       }else if(jAttr.getName().equals("location.uri")){
-        locationUriMatch = this.regionUri.equals(jAttr.getData());
+        locationUriMatch = this.regionId.equals(jAttr.getData());
       }
     }
 
     // Not in this region, return null
-    if (!uri.contains(this.regionUri) && !locationUriMatch) {
+    if (!identifier.contains(this.regionId) && !locationUriMatch) {
       return null;
     }
     
@@ -750,94 +750,94 @@ public class Plunder implements EntryPoint {
 
     ImageWrapper wrapper1, wrapper2;
 
-    if (uri.contains("receiver")) {
+    if (identifier.contains("receiver")) {
       wrapper1 = this.iconImages.get(KEY_RECEIVER);
-      obj = new DrawableObject(uri);
+      obj = new DrawableObject(identifier);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
-    } else if (uri.contains("transmitter")) {
+    } else if (identifier.contains("transmitter")) {
       wrapper1 = this.iconImages.get(KEY_TRANSMITTER);
-      obj = new DrawableObject(uri);
+      obj = new DrawableObject(identifier);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
-    } else if (uri.contains("door")) {
+    } else if (identifier.contains("door")) {
       wrapper1 = this.iconImages.get(KEY_DOOR_OPEN);
       wrapper2 = this.iconImages.get(KEY_DOOR_CLOSED);
-      obj = new Door(uri, wrapper1.getElement(),
+      obj = new Door(identifier, wrapper1.getElement(),
           wrapper1.getImage().getWidth(), wrapper1.getImage().getHeight(),
           wrapper2.getElement(), wrapper2.getImage().getWidth(), wrapper2
               .getImage().getHeight(), binaryValue);
-    } else if (uri.contains("projector")) {
+    } else if (identifier.contains("projector")) {
       wrapper1 = this.iconImages.get(KEY_PROJECTOR_ON);
       wrapper2 = this.iconImages.get(KEY_PROJECTOR_OFF);
-      obj = new Projector(uri, wrapper1.getElement(), wrapper1.getImage()
+      obj = new Projector(identifier, wrapper1.getElement(), wrapper1.getImage()
           .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
           wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
           binaryValue);
-    } else if (uri.contains("coffee pot")) {
-      obj = new DrawableObject(uri);
+    } else if (identifier.contains("coffee pot")) {
+      obj = new DrawableObject(identifier);
       wrapper1 = this.iconImages.get(KEY_COFFEE_OLD);
       // TODO: Coffee with state?
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
-    } else if (uri.contains("mug")) {
-      obj = new DrawableObject(uri);
+    } else if (identifier.contains("mug")) {
+      obj = new DrawableObject(identifier);
       wrapper1 = this.iconImages.get(KEY_MUG);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
-    } else if (uri.contains("microwave")) {
+    } else if (identifier.contains("microwave")) {
       wrapper1 = this.iconImages.get(KEY_MICROWAVE_ON);
       wrapper2 = this.iconImages.get(KEY_MICROWAVE_OFF);
-      obj = new Microwave(uri, wrapper1.getElement(), wrapper1.getImage()
+      obj = new Microwave(identifier, wrapper1.getElement(), wrapper1.getImage()
           .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
           wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
           binaryValue);
-    } else if (uri.contains("duct tape")) {
+    } else if (identifier.contains("duct tape")) {
       wrapper1 = this.iconImages.get(KEY_DUCT_TAPE);
-      obj = new DrawableObject(uri);
+      obj = new DrawableObject(identifier);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
-    } else if (uri.contains("hot glue gun")) {
-      obj = new DrawableObject(uri);
+    } else if (identifier.contains("hot glue gun")) {
+      obj = new DrawableObject(identifier);
       wrapper1 = this.iconImages.get(KEY_GLUE_GUN);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
-    } else if (uri.contains("chair")) {
+    } else if (identifier.contains("chair")) {
       wrapper1 = this.iconImages.get(KEY_CHAIR_OCCUPIED);
       wrapper2 = this.iconImages.get(KEY_CHAIR_EMPTY);
-      obj = new Chair(uri, wrapper1.getElement(), wrapper1.getImage()
+      obj = new Chair(identifier, wrapper1.getElement(), wrapper1.getImage()
           .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
           wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
           binaryValue);
-    } else if (uri.contains("packing tape")) {
+    } else if (identifier.contains("packing tape")) {
       wrapper1 = this.iconImages.get(KEY_PACKING_TAPE);
-      obj = new DrawableObject(uri);
+      obj = new DrawableObject(identifier);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
-    } else if (uri.contains("screen")) {
+    } else if (identifier.contains("screen")) {
       wrapper1 = this.iconImages.get(KEY_SCREEN_ON);
       wrapper2 = this.iconImages.get(KEY_SCREEN_OFF);
-      obj = new Screen(uri, wrapper1.getElement(), wrapper1.getImage()
+      obj = new Screen(identifier, wrapper1.getElement(), wrapper1.getImage()
           .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
           wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
           binaryValue);
-    } else if (uri.contains(KEY_SOLDERING_IRON)) {
-      obj = new DrawableObject(uri);
+    } else if (identifier.contains(KEY_SOLDERING_IRON)) {
+      obj = new DrawableObject(identifier);
       wrapper1 = this.iconImages.get("soldering iron");
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
-    } else if (uri.contains("refrigerator")) {
+    } else if (identifier.contains("refrigerator")) {
       wrapper1 = this.iconImages.get(KEY_REFRIGERATOR);
-      obj = new DrawableObject(uri);
+      obj = new DrawableObject(identifier);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
-    } else if (uri.contains("printer")) {
-      obj = new DrawableObject(uri);
+    } else if (identifier.contains("printer")) {
+      obj = new DrawableObject(identifier);
       wrapper1 = this.iconImages.get(KEY_PRINTER);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
-    } else if (uri.contains("phone")) {
-      obj = new DrawableObject(uri);
+    } else if (identifier.contains("phone")) {
+      obj = new DrawableObject(identifier);
       wrapper1 = this.iconImages.get(KEY_PHONE);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
@@ -845,7 +845,7 @@ public class Plunder implements EntryPoint {
 
     else {
       wrapper1 = this.iconImages.get(KEY_UNKNOWN);
-      obj = new DrawableObject(uri);
+      obj = new DrawableObject(identifier);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
     }
@@ -866,7 +866,7 @@ public class Plunder implements EntryPoint {
 
   protected WorldState fromJavaScript(JsWorldState fromState) {
     WorldState toState = new WorldState();
-    toState.setUri(fromState.getUri());
+    toState.setId(fromState.getIdentifier());
 
     Attribute[] attrs = new Attribute[fromState.getAttributes().length()];
     toState.setAttributes(attrs);

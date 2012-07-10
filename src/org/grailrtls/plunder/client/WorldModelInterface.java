@@ -13,7 +13,7 @@ public class WorldModelInterface {
   public static String QUERY_HOST = "localhost";
   public static String QUERY_PORT = "7011";
   public static String QUERY_PATH = "/grailrest";
-  public static final String SNAPSHOT_PATH = "/snapshot?uri=";
+  public static final String SNAPSHOT_PATH = "/snapshot?q=";
   
   int requestTimeoutMs = 3000;
 
@@ -25,21 +25,20 @@ public class WorldModelInterface {
     this.parent = parent;
   }
 
-  public void getRegionDetails(String regionUri) {
-    final String uri = URL.encode("http://" + QUERY_HOST + ":" + QUERY_PORT
-        + QUERY_PATH + SNAPSHOT_PATH + "region." + regionUri)
-        + "&callback=";
+  public void getRegionDetails(String regionId) {
+    final String url = URL.encode("http://" + QUERY_HOST + ":" + QUERY_PORT
+        + QUERY_PATH + SNAPSHOT_PATH + "region." + regionId)
+        + "&cb=";
 
-    createRegionCallback(this.jsonRequestId++, uri, this,this.requestTimeoutMs);
+    createRegionCallback(this.jsonRequestId++, url, this,this.requestTimeoutMs);
   }
   
-  public void getLocatableDetails(String regionUri){
-    
-    
   
+  public void getLocatableDetails(){
+    
     final String url = URL.encode("http://" + QUERY_HOST + ":" + QUERY_PORT
         + QUERY_PATH + SNAPSHOT_PATH + ".*"
-        + "&attribute=location.[xy]offset|on|closed|empty|location.uri&callback=");
+        + "&a=^(location.[xy]offset|on|closed|empty|location.uri)$&cb=");
     
     log.fine("Query URL: " + url);
 
