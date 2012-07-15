@@ -34,10 +34,10 @@ public class WorldModelInterface {
   }
   
   
-  public void getLocatableDetails(){
+  public void getLocatableDetails(final String regionId){
     
     final String url = URL.encode("http://" + QUERY_HOST + ":" + QUERY_PORT
-        + QUERY_PATH + SNAPSHOT_PATH + ".*"
+        + QUERY_PATH + SNAPSHOT_PATH + regionId+".*"
         + "&a=^(location.[xy]offset|on|closed|empty|location.uri)$&cb=");
     
     log.fine("Query URL: " + url);

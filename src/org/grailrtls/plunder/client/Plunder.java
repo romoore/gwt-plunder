@@ -256,7 +256,7 @@ public class Plunder implements EntryPoint {
 
         log.fine("@TIMER: Retrieving objects automatically. ("
             + Plunder.this.refreshRate + " ms)");
-        Plunder.this.wmi.getLocatableDetails();
+        Plunder.this.wmi.getLocatableDetails(Plunder.this.regionId);
 
       }
     };
@@ -528,7 +528,7 @@ public class Plunder implements EntryPoint {
     if (this.regionId == null) {
       return;
     }
-    this.wmi.getLocatableDetails();
+    this.wmi.getLocatableDetails(this.regionId);
   }
 
   protected void updateLocatableObjInfo(
@@ -636,7 +636,7 @@ public class Plunder implements EntryPoint {
 
     // Plunder.this.redrawBuffer();
 
-    this.wmi.getLocatableDetails();
+    this.wmi.getLocatableDetails(this.regionId);
     this.locationUpdateTimer.scheduleRepeating(Plunder.this.refreshRate);
   }
 
