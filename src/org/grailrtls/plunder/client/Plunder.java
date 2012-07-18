@@ -1,5 +1,9 @@
 package org.grailrtls.plunder.client;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -35,6 +39,7 @@ import com.google.gwt.event.dom.client.MouseDownEvent;
 import com.google.gwt.event.dom.client.MouseDownHandler;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
+import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
@@ -249,8 +254,7 @@ public class Plunder implements EntryPoint {
 
       @Override
       public void run() {
-        if (Plunder.this.regionId != null
-            && Plunder.this.regionId.length() > 0) {
+        if (Plunder.this.regionId != null && Plunder.this.regionId.length() > 0) {
 
         }
 
@@ -662,7 +666,7 @@ public class Plunder implements EntryPoint {
       DrawableObject currObject = this.objectLocations.get(identifier);
 
       DrawableObject newObject = createObject(iState);
-      if(newObject == null){
+      if (newObject == null) {
         continue;
       }
       if (currObject == null || !currObject.equals(newObject)) {
@@ -698,53 +702,107 @@ public class Plunder implements EntryPoint {
     String identifier = fromState.getIdentifier();
 
     float xOff = -1f;
+    long xOffTs = Long.MIN_VALUE;
     float yOff = -1f;
+    long yOffTs = Long.MIN_VALUE;
 
     boolean binaryValue = false; // The binary state it has
-    
+    long onValueTs = Long.MIN_VALUE;
+    long emptyValueTs = Long.MIN_VALUE;
+    long closedValueTs = Long.MIN_VALUE;
+    long uriValueTs = Long.MIN_VALUE;
+
     boolean locationUriMatch = false;
+
+    DateTimeFormat format = DateTimeFormat
+        .getFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     for (int j = 0; j < fromState.getAttributes().length(); ++j) {
       JsAttribute jAttr = fromState.getAttributes().get(j);
+      long ts = format.parse(jAttr.getCreated()).getTime();
       if (jAttr.getName().equals("location.xoffset")) {
+        
         // Skip dynamic locations for certain objects.
         if (jAttr.getOrigin().contains("solver")
             && (identifier.contains("screen") || identifier.contains("door")
-                || identifier.contains("projector") || identifier.contains("refrigerator")
-                || identifier.contains("printer") || identifier.contains("coffee pot") || identifier
+                || identifier.contains("projector")
+                || identifier.contains("refrigerator")
+                || identifier.contains("printer")
+                || identifier.contains("coffee pot") || identifier
                   .contains("microwave"))) {
+          continue;
+        }
+        if (ts > xOffTs) {
+          xOffTs = ts;
+        } else {
+          log.info("X-offset timestamp is too old.");
           continue;
         }
 
         xOff = Float.parseFloat(jAttr.getData());
       } else if (jAttr.getName().equals("location.yoffset")) {
+        
         // Skip dynamic locations for certain objects.
         if (jAttr.getOrigin().contains("solver")
             && (identifier.contains("screen") || identifier.contains("door")
-                || identifier.contains("projector") || identifier.contains("refrigerator")
-                || identifier.contains("printer") || identifier.contains("coffee pot") || identifier
+                || identifier.contains("projector")
+                || identifier.contains("refrigerator")
+                || identifier.contains("printer")
+                || identifier.contains("coffee pot") || identifier
                   .contains("microwave"))) {
+          continue;
+        }
+        if (ts > yOffTs) {
+          yOffTs = ts;
+        } else {
+          log.info("Y-offset timestamp is to old.");
           continue;
         }
         yOff = Float.parseFloat(jAttr.getData());
       } else if (jAttr.getName().equals("on")) {
+        if (ts > onValueTs) {
+          onValueTs = ts;
+        } else {
+          log.info("On timestamp is too old.");
+          continue;
+        }
         binaryValue = Boolean.valueOf(jAttr.getData());
       } else if (jAttr.getName().equals("closed")) {
+        if (ts > closedValueTs) {
+          closedValueTs = ts;
+        } else {
+          log.info("Closed timestamp is too old.");
+          continue;
+        }
         binaryValue = !Boolean.valueOf(jAttr.getData());
       } else if (jAttr.getName().equals("empty")) {
+        if (ts > emptyValueTs) {
+          emptyValueTs = ts;
+        } else {
+          log.info("Empty timestamp is too old.");
+          continue;
+        }
         binaryValue = !Boolean.valueOf(jAttr.getData());
-      }else if(jAttr.getName().equals("location.uri")){
+      } else if (jAttr.getName().equals("location.uri")) {
+        if (ts > uriValueTs) {
+          uriValueTs = ts;
+        } else {
+          log.info("URI timestamp is too old.");
+          continue;
+        }
         locationUriMatch = this.regionId.equals(jAttr.getData());
       }
     }
 
     // Not in this region, return null
     if (!identifier.contains(this.regionId) && !locationUriMatch) {
+      log.finer("\"" + identifier + "\" is not located in " + this.regionId);
       return null;
     }
-    
+
     // No coordinates
-    if(xOff < 0 || yOff < 0){
+    if (xOff < 0 || yOff < 0) {
+      log.finer("\"" + identifier + "\" missing coords (" + xOff + ", " + yOff + ")");
       return null;
     }
 
@@ -763,17 +821,17 @@ public class Plunder implements EntryPoint {
     } else if (identifier.contains("door")) {
       wrapper1 = this.iconImages.get(KEY_DOOR_OPEN);
       wrapper2 = this.iconImages.get(KEY_DOOR_CLOSED);
-      obj = new Door(identifier, wrapper1.getElement(),
-          wrapper1.getImage().getWidth(), wrapper1.getImage().getHeight(),
-          wrapper2.getElement(), wrapper2.getImage().getWidth(), wrapper2
-              .getImage().getHeight(), binaryValue);
-    } else if (identifier.contains("projector")) {
-      wrapper1 = this.iconImages.get(KEY_PROJECTOR_ON);
-      wrapper2 = this.iconImages.get(KEY_PROJECTOR_OFF);
-      obj = new Projector(identifier, wrapper1.getElement(), wrapper1.getImage()
+      obj = new Door(identifier, wrapper1.getElement(), wrapper1.getImage()
           .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
           wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
           binaryValue);
+    } else if (identifier.contains("projector")) {
+      wrapper1 = this.iconImages.get(KEY_PROJECTOR_ON);
+      wrapper2 = this.iconImages.get(KEY_PROJECTOR_OFF);
+      obj = new Projector(identifier, wrapper1.getElement(), wrapper1
+          .getImage().getWidth(), wrapper1.getImage().getHeight(),
+          wrapper2.getElement(), wrapper2.getImage().getWidth(), wrapper2
+              .getImage().getHeight(), binaryValue);
     } else if (identifier.contains("coffee pot")) {
       obj = new DrawableObject(identifier);
       wrapper1 = this.iconImages.get(KEY_COFFEE_OLD);
@@ -788,10 +846,10 @@ public class Plunder implements EntryPoint {
     } else if (identifier.contains("microwave")) {
       wrapper1 = this.iconImages.get(KEY_MICROWAVE_ON);
       wrapper2 = this.iconImages.get(KEY_MICROWAVE_OFF);
-      obj = new Microwave(identifier, wrapper1.getElement(), wrapper1.getImage()
-          .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
-          wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
-          binaryValue);
+      obj = new Microwave(identifier, wrapper1.getElement(), wrapper1
+          .getImage().getWidth(), wrapper1.getImage().getHeight(),
+          wrapper2.getElement(), wrapper2.getImage().getWidth(), wrapper2
+              .getImage().getHeight(), binaryValue);
     } else if (identifier.contains("duct tape")) {
       wrapper1 = this.iconImages.get(KEY_DUCT_TAPE);
       obj = new DrawableObject(identifier);
