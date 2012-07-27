@@ -29,6 +29,7 @@ public class Chair extends DrawableObject {
     this.oh = oh;
     this.ew = ew;
     this.eh = eh;
+    super.icon = this.isOccupied ? this.occupiedIcon : this.emptyIcon;
   }
 
   public boolean isOccupied() {
@@ -55,6 +56,14 @@ public class Chair extends DrawableObject {
   }
   
   @Override
+  public boolean equals(DrawableObject o){
+    if(o instanceof Chair){
+      return this.equals((Chair)o);
+    }
+    return super.equals(o);
+  }
+  
+  @Override
   public void draw(Context2d context){
     if(this.isOccupied){
     super.setIcon(this.occupiedIcon,this.ow, this.oh );
@@ -71,5 +80,10 @@ public class Chair extends DrawableObject {
   @Override
   public void setIcon(ImageElement icon, int w, int h){
     // Does nothing
+  }
+  
+  @Override
+  public String toString(){
+    return super.toString() + ": " + this.isOccupied;
   }
 }

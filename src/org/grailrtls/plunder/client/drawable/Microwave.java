@@ -28,6 +28,7 @@ public class Microwave extends DrawableObject {
     this.onh = onh;
     this.ofw = ofw;
     this.ofh = ofh;
+    super.icon = this.isOn ? this.onIcon : this.offIcon;
   }
 
   public boolean equals(Microwave m) {
@@ -35,6 +36,14 @@ public class Microwave extends DrawableObject {
       return this.isOn == m.isOn;
     }
     return false;
+  }
+  
+  @Override
+  public boolean equals(DrawableObject o){
+    if(o instanceof Microwave){
+      return this.equals((Microwave)o);
+    }
+    return super.equals(o);
   }
 
   /**
@@ -75,4 +84,8 @@ public class Microwave extends DrawableObject {
     super.draw(context);
   }
 
+  @Override
+  public String toString(){
+    return super.toString() + ": " + this.isOn;
+  }
 }

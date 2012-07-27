@@ -21,6 +21,7 @@ public class Projector extends DrawableObject {
     this.onh = onh;
     this.ofw = ofw;
     this.ofh = ofh;
+    super.icon = this.isOn ? this.onIcon : this.offIcon;
   }
 
   public boolean equals(Projector p) {
@@ -28,6 +29,14 @@ public class Projector extends DrawableObject {
       return this.isOn == p.isOn;
     }
     return false;
+  }
+  
+  @Override
+  public boolean equals(DrawableObject o){
+    if(o instanceof Projector){
+      return this.equals((Projector)o);
+    }
+    return super.equals(o);
   }
 
   /**
@@ -66,4 +75,8 @@ public class Projector extends DrawableObject {
     super.draw(context);
   }
 
+  @Override
+  public String toString(){
+    return super.toString() + ": " + this.isOn;
+  }
 }

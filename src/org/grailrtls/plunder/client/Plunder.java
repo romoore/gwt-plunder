@@ -654,7 +654,7 @@ public class Plunder implements EntryPoint {
     int i = offset;
     int j = 0;
     for (; j < stepSize && i < totalObjects; ++i) {
-      log.finer("Object " + (i + 1) + "/" + (totalObjects) + ".");
+      log.finer((this.dirty ? "#D# ":"")+"Object " + (i + 1) + "/" + (totalObjects) + ".");
 
       JsWorldState iState = objectStates.get(i);
       String identifier = iState.getIdentifier();
@@ -669,10 +669,11 @@ public class Plunder implements EntryPoint {
       if (newObject == null) {
         continue;
       }
+      log.finer(currObject + " -> " + newObject);
       if (currObject == null || !currObject.equals(newObject)) {
         log.finer("[" + newObject + "] has changed [" + currObject
             + "]. Updating object location.");
-        dirty = true;
+        this.dirty = true;
         this.objectLocations.put(identifier, newObject);
       }
     }
@@ -681,7 +682,7 @@ public class Plunder implements EntryPoint {
       return true;
     }
 
-    if (dirty) {
+    if (this.dirty) {
       log.fine("1 or more objects is dirty, buffer should be redrawn.");
       Scheduler.get().scheduleDeferred(new ScheduledCommand() {
 
@@ -692,7 +693,7 @@ public class Plunder implements EntryPoint {
         }
       });
     }
-    dirty = false;
+    this.dirty = false;
     log.fine("Completed object updates.");
     return false;
   }

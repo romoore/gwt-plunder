@@ -21,6 +21,7 @@ public class Screen extends DrawableObject {
     this.onh = onh;
     this.ofw = ofw;
     this.ofh = ofh;
+    super.icon = this.isOn ? this.onIcon : this.offIcon;
   }
 
   public boolean equals(Screen s) {
@@ -28,6 +29,14 @@ public class Screen extends DrawableObject {
       return this.isOn == s.isOn;
     }
     return false;
+  }
+  
+  @Override
+  public boolean equals(DrawableObject o){
+    if(o instanceof Screen){
+      return this.equals((Screen)o);
+    }
+    return super.equals(o);
   }
 
   /**
@@ -64,6 +73,11 @@ public class Screen extends DrawableObject {
       super.setIcon(this.offIcon, this.ofw, this.ofh);
     }
     super.draw(context);
+  }
+  
+  @Override
+  public String toString(){
+    return super.toString() + ": " + this.isOn;
   }
 
 }

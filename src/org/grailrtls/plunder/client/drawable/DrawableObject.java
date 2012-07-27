@@ -5,6 +5,8 @@ import java.util.logging.Logger;
 import org.grailrtls.plunder.client.WorldState;
 
 import com.google.gwt.canvas.dom.client.Context2d;
+import com.google.gwt.canvas.dom.client.CssColor;
+import com.google.gwt.canvas.dom.client.FillStrokeStyle;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.user.client.ui.Image;
 
@@ -14,7 +16,7 @@ public class DrawableObject {
   private final String uri;
   private float xOffset = -1f;
   private float yOffset = -1f;
-  private ImageElement icon = null;
+  protected ImageElement icon = null;
   private int iconWidth = 0;
   private int iconHeight = 0;
   protected float xScale = 1f;
@@ -22,6 +24,7 @@ public class DrawableObject {
   protected static int desiredWidth = 32;
   protected static int maxHeight = 48;
   private boolean isVisible = true;
+  private long lastUpdate = System.currentTimeMillis();
   
   private WorldState state;
 
@@ -39,6 +42,7 @@ public class DrawableObject {
 
   public void setxOffset(float xOffset) {
     this.xOffset = xOffset;
+    this.lastUpdate = System.currentTimeMillis();
   }
 
   public float getyOffset() {
@@ -47,6 +51,7 @@ public class DrawableObject {
 
   public void setyOffset(float yOffset) {
     this.yOffset = yOffset;
+    this.lastUpdate = System.currentTimeMillis();
   }
   
   public boolean containsPoint(int x, int y){
@@ -91,6 +96,7 @@ public class DrawableObject {
     this.icon = icon;
     this.iconWidth = width;
     this.iconHeight = height;
+    this.lastUpdate = System.currentTimeMillis();
   }
 
   @Override
@@ -123,9 +129,24 @@ public class DrawableObject {
     
     context.translate(xPos, yPos);
     log.finer("Drawing [" + this + "] @ (" + xPos + "->"+ drawWidth+ ", " + yPos + "->" + drawHeight+ ")");
+//    this.drawHighlight(context, drawWidth, drawHeight);
+    
     context.drawImage(this.icon, 0, 0, this.iconWidth, this.iconHeight, 0, 0,
         drawWidth, drawHeight);
     context.restore();
+  }
+  
+  protected void drawHighlight(Context2d context, float drawWidth, float drawHeight){
+    long now = System.currentTimeMillis();
+    if(now - this.lastUpdate < 5000l){
+      FillStrokeStyle color = context.getFillStyle();
+      context.setFillStyle("#F00");
+      context.beginPath();
+      context.rect(-2, -2, drawWidth+2, drawHeight+2);
+      context.closePath();
+      context.fill();
+      context.setFillStyle(color);
+    }
   }
 
   public void setIconWidth(int iconWidth) {
@@ -162,5 +183,7 @@ public class DrawableObject {
 
   public void setState(WorldState state) {
     this.state = state;
+    this.lastUpdate = System.currentTimeMillis();
   }
+  
 }
