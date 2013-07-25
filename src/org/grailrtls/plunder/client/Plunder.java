@@ -716,7 +716,7 @@ public class Plunder implements EntryPoint {
     boolean locationUriMatch = false;
 
     DateTimeFormat format = DateTimeFormat
-        .getFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+        .getFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
     for (int j = 0; j < fromState.getAttributes().length(); ++j) {
       JsAttribute jAttr = fromState.getAttributes().get(j);
