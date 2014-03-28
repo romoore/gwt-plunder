@@ -37,7 +37,8 @@ Here's the hardest part, and I'll try to highlight the important steps:
  * Import this project into Eclipse as an Existing Maven Project.
  * Once the project is imported, open the WorldModelInterface class and adjust
 	 the QUERY_HOST, QUERY_PORT, and QUERY_PATH values to match your
-	 environment.
+	 environment. These should reflect the URL of the Owl Platform REST
+	 Interface service.
  * Select the "project folder" for the Plunderer's Plot project in the Package
 	 Explorer view and then click the GDT Pull-down menu (a blue sphere with
 	 'g') and click the GWT Compile Project option.  Set the log level to
