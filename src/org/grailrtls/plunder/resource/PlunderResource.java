@@ -77,4 +77,7 @@ public interface PlunderResource extends ClientBundle {
 
   @Source("images/unlabelled.png")
   ImageResource unknown();
+  
+  @Source("images/legend_320.png")
+  ImageResource legend();
 }

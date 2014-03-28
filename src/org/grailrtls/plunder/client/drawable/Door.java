@@ -6,7 +6,7 @@ import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.dom.client.ImageElement;
 import com.google.gwt.user.client.ui.Image;
 
-public class Door extends DrawableObject {
+public class Door extends DrawableObject implements HasTemperature {
   
   private static final Logger log = Logger.getLogger(Door.class.getName());
 
@@ -27,6 +27,7 @@ public class Door extends DrawableObject {
   private ImageElement openIcon = null;
   private ImageElement closedIcon = null;
   private int ow, oh, cw, ch;
+  private double temperature;
 
   public void setOpenIcon(ImageElement openIcon) {
     this.openIcon = openIcon;
@@ -61,7 +62,6 @@ public class Door extends DrawableObject {
   }
 
   public boolean equals(Door d) {
-    log.fine("Comparing doors.");
     if (super.equals(d)) {
       return this.open == d.open;
     }
@@ -79,5 +79,13 @@ public class Door extends DrawableObject {
   @Override
   public String toString(){
     return super.toString() + ": " + this.open;
+  }
+
+  public double getTemperature() {
+    return temperature;
+  }
+
+  public void setTemperature(double temperature) {
+    this.temperature = temperature;
   }
 }

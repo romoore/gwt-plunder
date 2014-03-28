@@ -38,7 +38,7 @@ public class WorldModelInterface {
     
     final String url = URL.encode("http://" + QUERY_HOST + ":" + QUERY_PORT
         + QUERY_PATH + SNAPSHOT_PATH + regionId+".*"
-        + "&a=^(location.[xy]offset|on|closed|empty|location.uri)$&cb=");
+        + "&a=^(location.[xy]offset|on|closed|empty|light level|temperature.celsius|location.uri|passive motion.tile)$&cb=");
     
     log.fine("Query URL: " + url);
 

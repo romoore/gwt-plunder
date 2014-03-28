@@ -3,15 +3,19 @@ package org.grailrtls.plunder.client;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
 import org.grailrtls.plunder.client.drawable.Chair;
 import org.grailrtls.plunder.client.drawable.Door;
 import org.grailrtls.plunder.client.drawable.DrawableObject;
+import org.grailrtls.plunder.client.drawable.HasTemperature;
 import org.grailrtls.plunder.client.drawable.Microwave;
+import org.grailrtls.plunder.client.drawable.PassiveTiles;
 import org.grailrtls.plunder.client.drawable.Projector;
 import org.grailrtls.plunder.client.drawable.Screen;
 import org.grailrtls.plunder.resource.PlunderResource;
@@ -19,6 +23,7 @@ import org.grailrtls.plunder.resource.PlunderResource;
 import sun.security.krb5.internal.util.KrbDataOutputStream;
 
 import com.google.gwt.canvas.client.Canvas;
+import com.google.gwt.canvas.dom.client.CanvasGradient;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.JsArray;
@@ -71,11 +76,11 @@ public class Plunder implements EntryPoint {
   private Context2d context;
   private Context2d backBufferContext;
 
-  private int refreshRate = 2000;
-  private int requestTimeout = 1000;
+  private int refreshRate = 1000;
+  private int requestTimeout = 800;
 
   // FIXME: Big hack for totalIcons.
-  int totalIcons = 23;
+  int totalIcons = 24;
   int loadedIcons = 0;
 
   private static final String KEY_RECEIVER = "receiver";
@@ -101,6 +106,7 @@ public class Plunder implements EntryPoint {
   private static final String KEY_REFRIGERATOR = "refrigerator";
   private static final String KEY_PRINTER = "printer";
   private static final String KEY_PHONE = "phone";
+  private static final String KEY_LEGEND = "legend";
 
   private Map<String, ImageWrapper> iconImages = new HashMap<String, ImageWrapper>();
 
@@ -158,7 +164,11 @@ public class Plunder implements EntryPoint {
   private static final Image IMG_PHONE = new Image(PlunderResource.INSTANCE
       .mobilePhone().getSafeUri());
 
+  private static final Image IMG_LEGEND = new Image(PlunderResource.INSTANCE
+      .legend().getSafeUri());
+
   private Image regionImage = null;
+
   private float regionWidth = 1f;
   private float regionHeight = 1f;
   private float regionWidthToHeight = 1f;
@@ -243,6 +253,7 @@ public class Plunder implements EntryPoint {
       prepareIcon(KEY_REFRIGERATOR, IMG_FRIDGE);
       prepareIcon(KEY_PRINTER, IMG_PRINTER);
       prepareIcon(KEY_PHONE, IMG_PHONE);
+      prepareIcon(KEY_LEGEND, IMG_LEGEND);
     }
   }
 
@@ -507,6 +518,15 @@ public class Plunder implements EntryPoint {
           regImgHeight, 0, 0, drawWidth, drawHeight);
     }
 
+    // Draw temperature "legend"
+    this.backBufferContext.save();
+    this.backBufferContext.translate(-10, sHeight - IMG_LEGEND.getHeight());
+    this.backBufferContext.drawImage(ImageElement.as(IMG_LEGEND.getElement()),
+        0, 0, IMG_LEGEND.getWidth(), IMG_LEGEND.getHeight(), 0, 0,
+        IMG_LEGEND.getWidth(), IMG_LEGEND.getHeight());
+
+    this.backBufferContext.restore();
+
     this.backBufferContext.save();
 
     // Draw receivers
@@ -654,7 +674,8 @@ public class Plunder implements EntryPoint {
     int i = offset;
     int j = 0;
     for (; j < stepSize && i < totalObjects; ++i) {
-      log.finer((this.dirty ? "#D# ":"")+"Object " + (i + 1) + "/" + (totalObjects) + ".");
+      // log.finer((this.dirty ? "#D# " : "") + "Object " + (i + 1) + "/"
+      // + (totalObjects) + ".");
 
       JsWorldState iState = objectStates.get(i);
       String identifier = iState.getIdentifier();
@@ -669,10 +690,12 @@ public class Plunder implements EntryPoint {
       if (newObject == null) {
         continue;
       }
-      log.finer(currObject + " -> " + newObject);
+      if (newObject instanceof PassiveTiles) {
+        this.dirty = true;
+      }
       if (currObject == null || !currObject.equals(newObject)) {
-        log.finer("[" + newObject + "] has changed [" + currObject
-            + "]. Updating object location.");
+//        log.finer("[" + newObject + "] has changed [" + currObject
+//            + "]. Updating object location.");
         this.dirty = true;
         this.objectLocations.put(identifier, newObject);
       }
@@ -694,7 +717,7 @@ public class Plunder implements EntryPoint {
       });
     }
     this.dirty = false;
-    log.fine("Completed object updates.");
+    log.fine("Completed " + totalObjects + " object updates.");
     return false;
   }
 
@@ -712,25 +735,73 @@ public class Plunder implements EntryPoint {
     long emptyValueTs = Long.MIN_VALUE;
     long closedValueTs = Long.MIN_VALUE;
     long uriValueTs = Long.MIN_VALUE;
+    double tempValue = Double.MIN_VALUE;
+
+    List<Float[]> passiveTiles = new ArrayList<Float[]>();
 
     boolean locationUriMatch = false;
 
-    DateTimeFormat format = DateTimeFormat
-        .getFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+    DateTimeFormat format = DateTimeFormat.getFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
     for (int j = 0; j < fromState.getAttributes().length(); ++j) {
       JsAttribute jAttr = fromState.getAttributes().get(j);
+
       long ts = format.parse(jAttr.getCreated()).getTime();
-      if (jAttr.getName().equals("location.xoffset")) {
-        
+
+      // Passive motion results (Rob's code)
+      if ("passive motion.tile".equals(jAttr.getName())) {
+
+        /*
+         *  Parse-out 5 floats from the hexadecimal values
+         *  Data looks like this:
+         *  (X1,Y1)
+         *  +-----------------+
+         *  |                 |
+         *  |                 |
+         *  +-----------------+
+         *                   (X2,Y2)
+         *  
+         *  
+         *  0x X1       Y1       X2       Y2       SCORE
+         *  0x 42462E8C 41EE9696 426DD175 421F0F0F 00000000 
+         *     425A0000 41EE9696 4280D174 421F0F0F 00000000
+         *     426DD174 41EE9696 428ABA2E 421F0F0F 00000000
+         */
+
+        String stringData = jAttr.getData();
+        if (stringData != null) {
+          // Start by skipping "0x" at beginning
+          for (int stringIndex = 2, sLen = stringData.length(); stringIndex < sLen;) {
+            Float[] coordsAndScore = new Float[5];
+            for (int i = 0; i < 5; ++i) {
+              String sFloat = stringData
+                  .substring(stringIndex, stringIndex + 8);
+              Long asLong = Long.parseLong(sFloat, 16);
+              stringIndex += 8;
+              Float asFloat = Float.intBitsToFloat(asLong.intValue());
+              coordsAndScore[i] = asFloat.floatValue();
+              if (i == 1 || i == 3) {
+                coordsAndScore[i] = Float.valueOf(this.regionHeight
+                    - coordsAndScore[i].floatValue());
+              }
+            }
+            passiveTiles.add(coordsAndScore);
+          }
+
+        }
+      }
+
+      else if (jAttr.getName().equals("location.xoffset")) {
+
         // Skip dynamic locations for certain objects.
         if (jAttr.getOrigin().contains("solver")
             && (identifier.contains("screen") || identifier.contains("door")
                 || identifier.contains("projector")
                 || identifier.contains("refrigerator")
                 || identifier.contains("printer")
-                || identifier.contains("coffee pot") || identifier
-                  .contains("microwave"))) {
+                || identifier.contains("coffee pot")
+                || identifier.contains("microwave") || identifier
+                  .contains("anchor"))) {
           continue;
         }
         if (ts > xOffTs) {
@@ -742,15 +813,16 @@ public class Plunder implements EntryPoint {
 
         xOff = Float.parseFloat(jAttr.getData());
       } else if (jAttr.getName().equals("location.yoffset")) {
-        
+
         // Skip dynamic locations for certain objects.
         if (jAttr.getOrigin().contains("solver")
             && (identifier.contains("screen") || identifier.contains("door")
                 || identifier.contains("projector")
                 || identifier.contains("refrigerator")
                 || identifier.contains("printer")
-                || identifier.contains("coffee pot") || identifier
-                  .contains("microwave"))) {
+                || identifier.contains("coffee pot")
+                || identifier.contains("microwave") || identifier
+                  .contains("anchor"))) {
           continue;
         }
         if (ts > yOffTs) {
@@ -792,6 +864,14 @@ public class Plunder implements EntryPoint {
           continue;
         }
         locationUriMatch = this.regionId.equals(jAttr.getData());
+      } else if (jAttr.getName().equals("temperature.celsius")) {
+        if (ts > uriValueTs) {
+          uriValueTs = ts;
+        } else {
+          log.info("Temperature timestamp is too old.");
+          continue;
+        }
+        tempValue = Double.parseDouble(jAttr.getData());
       }
     }
 
@@ -802,30 +882,22 @@ public class Plunder implements EntryPoint {
     }
 
     // No coordinates
-    if (xOff < 0 || yOff < 0) {
-      log.finer("\"" + identifier + "\" missing coords (" + xOff + ", " + yOff + ")");
+    if ((xOff < 0 || yOff < 0) && passiveTiles.isEmpty()) {
+      log.finer("\"" + identifier + "\" missing coords (" + xOff + ", " + yOff
+          + ")");
       return null;
     }
 
     ImageWrapper wrapper1, wrapper2;
 
-    if (identifier.contains("receiver")) {
-      wrapper1 = this.iconImages.get(KEY_RECEIVER);
-      obj = new DrawableObject(identifier);
-      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
-          wrapper1.getImage().getHeight());
-    } else if (identifier.contains("transmitter")) {
-      wrapper1 = this.iconImages.get(KEY_TRANSMITTER);
-      obj = new DrawableObject(identifier);
-      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
-          wrapper1.getImage().getHeight());
-    } else if (identifier.contains("door")) {
+    if (identifier.contains("door") || closedValueTs > Long.MIN_VALUE) {
       wrapper1 = this.iconImages.get(KEY_DOOR_OPEN);
       wrapper2 = this.iconImages.get(KEY_DOOR_CLOSED);
       obj = new Door(identifier, wrapper1.getElement(), wrapper1.getImage()
           .getWidth(), wrapper1.getImage().getHeight(), wrapper2.getElement(),
           wrapper2.getImage().getWidth(), wrapper2.getImage().getHeight(),
           binaryValue);
+      ((HasTemperature) obj).setTemperature(tempValue);
     } else if (identifier.contains("projector")) {
       wrapper1 = this.iconImages.get(KEY_PROJECTOR_ON);
       wrapper2 = this.iconImages.get(KEY_PROJECTOR_OFF);
@@ -900,8 +972,27 @@ public class Plunder implements EntryPoint {
       wrapper1 = this.iconImages.get(KEY_PHONE);
       obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
           wrapper1.getImage().getHeight());
+    } else if (identifier.contains("receiver")) {
+      // wrapper1 = this.iconImages.get(KEY_RECEIVER);
+      // obj = new DrawableObject(identifier);
+      // obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+      // wrapper1.getImage().getHeight());'
+      // FIXME: This is a hack
+      return null;
+    } else if (identifier.contains("transmitter")) {
+      wrapper1 = this.iconImages.get(KEY_TRANSMITTER);
+      obj = new DrawableObject(identifier);
+      obj.setIcon(wrapper1.getElement(), wrapper1.getImage().getWidth(),
+          wrapper1.getImage().getHeight());
     }
-
+    // Handle passive motion tiles (Rob's code)
+    else if (identifier.equals(this.regionId) && !passiveTiles.isEmpty()) {
+      obj = new PassiveTiles(identifier);
+      xOff = 1;
+      yOff = 1;
+      ((PassiveTiles) obj).setTiles(passiveTiles);
+    }
+    // Some unsupported object with x/y coordinates
     else {
       wrapper1 = this.iconImages.get(KEY_UNKNOWN);
       obj = new DrawableObject(identifier);
@@ -913,8 +1004,8 @@ public class Plunder implements EntryPoint {
     // FIXME: Nasty hack for Y-translation
     obj.setyOffset(this.regionHeight - yOff);
 
-    log.finer(obj.toString() + ": (" + xOff + ", " + yOff + "->"
-        + obj.getyOffset() + ")");
+    // log.finer(obj.toString() + ": (" + xOff + ", " + yOff + "->"
+    // + obj.getyOffset() + ")");
 
     obj.setxScale(this.regionToScreenX);
     obj.setyScale(this.regionToScreenY);
